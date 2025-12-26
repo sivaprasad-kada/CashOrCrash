@@ -50,6 +50,7 @@ export function GameProvider({ children }) {
   // [NEW] Admin Auth State
   const [hasActiveAdmin, setHasActiveAdmin] = useState(false);
   const [isAdminLoading, setIsAdminLoading] = useState(true);
+  const [adminRoomId, setAdminRoomId] = useState(localStorage.getItem("adminRoomId") || null);
 
   // Check Admin Status on Mount
   useEffect(() => {
@@ -74,7 +75,14 @@ export function GameProvider({ children }) {
     const res = await axios.post(`${ADMIN_API}/login`, credentials);
     if (res.data.success) {
       setHasActiveAdmin(true);
-      // If server returns user, we can store it or just rely on status
+      if (res.data.user.roomId) {
+        setAdminRoomId(res.data.user.roomId);
+        localStorage.setItem("adminRoomId", res.data.user.roomId);
+      }
+      if (res.data.user.username) {
+        localStorage.setItem("adminUsername", res.data.user.username);
+        setAdminName(res.data.user.username);
+      }
       return res.data;
     }
     throw new Error("Login failed");
@@ -82,99 +90,110 @@ export function GameProvider({ children }) {
 
   const logoutAdmin = async (username) => {
     try {
-      await axios.post(`${ADMIN_API}/logout`, { username });
+      const userToLogout = username || localStorage.getItem("adminUsername");
+      await axios.post(`${ADMIN_API}/logout`, { username: userToLogout });
       setHasActiveAdmin(false);
+      setAdminRoomId(null);
+      localStorage.removeItem("adminRoomId");
+      localStorage.removeItem("adminUsername");
     } catch (err) { console.error("Logout error", err); }
   };
 
   // 1. Initial Load of State
   const activeTeam = teams.find((t) => t._id === activeTeamId);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const refreshState = async () => {
+    try {
+      // [UPDATED] Room Filter
+      // If admin, we know the room. If player, we might rely on global state or active session.
+      const initialRoomQuery = adminRoomId ? `?roomId=${adminRoomId}` : "";
+
+      // 1. Fetch Teams & State Logic
+      const [teamsRes, stateRes] = await Promise.all([
+        axios.get(`${TEAM_API}${initialRoomQuery}`),
+        axios.get(`${STATE_API}${initialRoomQuery}`)
+      ]);
+
+      setTeams(teamsRes.data);
+      const serverState = stateRes.data;
+
+      setIsGameActive(serverState.isGameActive || false);
+
+      // 2. Fetch Questions (Dependent on Room ID from State or Admin)
+      // We must ensure we fetch questions locked for the SPECIFIC roomId of this game session
+      const effectiveRoomId = adminRoomId || serverState.roomId;
+      const questionRoomQuery = effectiveRoomId ? `?roomId=${effectiveRoomId}` : "";
+
+      const questionsRes = await axios.get(`${GAME_API}/questions${questionRoomQuery}`);
+      const serverQuestions = questionsRes.data;
+
+
+      // Fetch Admin Balance
+      // Prioritize the currently logged-in admin if available
       try {
-        const [teamsRes, stateRes, questionsRes] = await Promise.all([
-          axios.get(TEAM_API),
-          axios.get(STATE_API),
-          axios.get(`${GAME_API}/questions`)
-        ]);
+        const adminsRes = await axios.get(ADMIN_API);
+        const loggedInUsername = localStorage.getItem("adminUsername");
 
-        setTeams(teamsRes.data);
-        const serverState = stateRes.data;
+        let targetAdmin = null;
 
-        setIsGameActive(serverState.isGameActive || false);
-
-        // Fetch Admin Balance if game started
-        if (serverState.startedByAdminId) {
-          // We can't easily fetch single admin by ID publically without auth usually, 
-          // but assuming we add a route or allow it for game display.
-          // Let's rely on stored value or fetch all admins and find? (Inefficient but works for small count)
-          // Better: Updated gamestate endpoint to populate it, or specialized route.
-          // For now, let's fetch all admins (since we have the route) and find the one.
-          try {
-            const adminsRes = await axios.get(ADMIN_API);
-            const admin = adminsRes.data.find(a => a._id === serverState.startedByAdminId);
-            if (admin) {
-              setAdminBalance(admin.balance);
-              setAdminName(admin.username);
-            }
-          } catch (e) { console.warn("Could not fetch admin details"); }
+        if (loggedInUsername) {
+          targetAdmin = adminsRes.data.find(a => a.username === loggedInUsername);
         }
 
-        const serverQuestions = questionsRes.data;
-        // ... rest of sync logic ...
-
-        // ... existing sync logic ...
-        const resultsMap = {};
-        const questionList = serverQuestions.map(q => {
-          if (q.locked && q.result) {
-            resultsMap[q.number] = q.result;
-          } else if (q.locked) {
-            resultsMap[q.number] = "locked";
-          }
-          return { id: q.number };
-        });
-
-        setQuestions(questionList);
-        setQuestionResults(resultsMap);
-
-        if (serverState) {
-          if (serverState.activeTeamId) setActiveTeamId(serverState.activeTeamId);
-          else if (teamsRes.data.length > 0) setActiveTeamId(teamsRes.data[0]._id);
-
-          if (serverState.currentQuestionId) {
-            if (resultsMap[serverState.currentQuestionId]) clearCurrentQuestion();
-            else {
-              await loadQuestion(serverState.currentQuestionId, false);
-              setRevealQuestion(true);
-              setShowOnlySelected(true);
-            }
-          }
+        // Fallback to whoever started the game if current user not found or not logged in
+        if (!targetAdmin && serverState.startedByAdminId) {
+          targetAdmin = adminsRes.data.find(a => a._id === serverState.startedByAdminId);
         }
 
-      } catch (err) {
-        console.error("Failed to load game state:", err);
+        if (targetAdmin) {
+          setAdminBalance(targetAdmin.balance);
+          setAdminName(targetAdmin.username);
+        }
+      } catch (e) { console.warn("Could not fetch admin details"); }
+
+      const resultsMap = {};
+      const questionList = serverQuestions.map(q => {
+        if (q.locked && q.result) {
+          resultsMap[q.number] = q.result;
+        } else if (q.locked) {
+          resultsMap[q.number] = "locked";
+        }
+        return { id: q.number };
+      });
+
+      setQuestions(questionList);
+      setQuestionResults(resultsMap);
+
+      if (serverState) {
+        if (serverState.activeTeamId) setActiveTeamId(serverState.activeTeamId);
+        else if (teamsRes.data.length > 0) setActiveTeamId(teamsRes.data[0]._id);
+
+        if (serverState.currentQuestionId) {
+          // KEY FIX: If result exists in our room-aware map, clear the "current" status
+          if (resultsMap[serverState.currentQuestionId]) {
+            console.log(`[SYNC] Question ${serverState.currentQuestionId} is already done/locked. Clearing state.`);
+            clearCurrentQuestion();
+          } else {
+            // Only load if strictly NOT locked/answered
+            await loadQuestion(serverState.currentQuestionId, false);
+            setRevealQuestion(true);
+            setShowOnlySelected(true);
+          }
+        }
       }
-    };
-    fetchData();
-  }, []);
+
+    } catch (err) {
+      console.error("Failed to load game state:", err);
+    }
+  };
+
+  useEffect(() => {
+    refreshState();
+  }, [adminRoomId]);
 
   // SOCKET LISTENERS
   useEffect(() => {
-    // Need socket instance - implicitly usage via hooks or global? 
-    // SocketContext provides useSocket(). 
-    // We are in GameProvider, so we can't use useSocket if SocketProvider wraps GameProvider?
-    // App.jsx: GameProvider wraps SocketProvider. So NO useSocket here.
-    // But we can import `io` or separate listener hook. 
-    // Actually, standard is to use `SocketContext` inside components.
-    // But we want to update global state.
-    // Let's move socket listeners to a wrapper or exposing `updateTeams` ...
-    // For now, let components handle it? No, context state needs update.
-    // App.jsx Structure: <GameProvider><SocketProvider>...
-    // This means GameContext CANNOT access SocketContext.
-    // Fix: Swap provider order in App.jsx in next step.
-    // For now, I will add `updateAdminBalance` and `updateTeams` functions to Context 
-    // so a child component (like a "GameManager" or Game.jsx) can listen and call them.
+    // ... (existing comments)
   }, []);
 
   const refreshAdminBalance = async () => {
@@ -189,18 +208,22 @@ export function GameProvider({ children }) {
   };
 
   const loadQuestion = async (questionId, persist = true) => {
-    const res = await axios.get(`${GAME_API}/question/${questionId}`);
+    const currentRoomId = adminRoomId || activeTeam?.roomId;
+    const roomQuery = currentRoomId ? `?roomId=${currentRoomId}` : "";
+
+    const res = await axios.get(`${GAME_API}/question/${questionId}${roomQuery}`);
     setSelectedQuestion(res.data);
 
     if (persist) {
-      axios.put(STATE_API, { currentQuestionId: questionId }).catch(console.error);
+      axios.put(STATE_API, { currentQuestionId: questionId, roomId: currentRoomId }).catch(console.error);
     }
   };
 
   const clearCurrentQuestion = () => {
     setSelectedQuestion(null);
     setBidState({ questionId: null, amount: null, confirmed: false });
-    axios.put(STATE_API, { currentQuestionId: null }).catch(console.error);
+    const currentRoomId = adminRoomId || activeTeam?.roomId;
+    axios.put(STATE_API, { currentQuestionId: null, roomId: currentRoomId }).catch(console.error);
   };
 
   const useLifeline = async (payload) => {
@@ -241,10 +264,6 @@ export function GameProvider({ children }) {
     }));
   };
 
-  // Move this safely below defining functions but before return
-  // (Actually moved up to line 46 earlier, let's just make sure it's singular)
-  // I will remove the one at 170.
-
   return (
     <GameContext.Provider
       value={{
@@ -252,7 +271,7 @@ export function GameProvider({ children }) {
         setTeams,
         activeTeam,
         activeTeamId,
-        setActiveTeamId: updateActiveTeam, // Use wrapper
+        setActiveTeamId: updateActiveTeam,
         questions,
         bidState,
         setBidState,
@@ -278,13 +297,13 @@ export function GameProvider({ children }) {
         isGameActive,
         adminBalance,
         adminName,
-        adminName,
-        setAdminBalance, // Exposed for socket updates
-        setTeams, // Exposed
+        setAdminBalance,
         hasActiveAdmin,
         isAdminLoading,
         loginAdmin,
-        logoutAdmin
+        logoutAdmin,
+        adminRoomId,
+        refreshState // NEW EXPORT
       }}
     >
       {children}

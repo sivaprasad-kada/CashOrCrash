@@ -12,7 +12,10 @@ import FeedbackOverlay from "../components/game/FeedbackOverlay";
 
 export default function Game() {
   const navigate = useNavigate();
-  const { isGameActive, adminBalance, adminName, setTeams, setAdminBalance, activeTeam, hasActiveAdmin, isAdminLoading } = useGame();
+  const {
+    isGameActive, adminBalance, adminName, setTeams, setAdminBalance, activeTeam,
+    hasActiveAdmin, isAdminLoading, logoutAdmin, setQuestionResults, adminRoomId
+  } = useGame();
   const socket = useSocket();
 
   // [NEW] Route Protection
@@ -34,11 +37,25 @@ export default function Game() {
       setAdminBalance(balance);
     });
 
+    socket.on("QUESTION_LOCKED", ({ roomId, questionId, result }) => {
+      const currentRoomId = adminRoomId || activeTeam?.roomId;
+
+      // Strict Room Check
+      if (currentRoomId && String(currentRoomId) === String(roomId)) {
+        console.log(`[GAME] Locking Question ${questionId} for Room ${roomId}`);
+        setQuestionResults(prev => ({
+          ...prev,
+          [questionId]: result || "locked"
+        }));
+      }
+    });
+
     return () => {
       socket.off("TEAM_UPDATE");
       socket.off("ADMIN_BALANCE_UPDATE");
+      socket.off("QUESTION_LOCKED");
     };
-  }, [socket, setTeams, setAdminBalance]);
+  }, [socket, setTeams, setAdminBalance, setQuestionResults, adminRoomId, activeTeam]);
 
   if (isAdminLoading) {
     return (
@@ -69,11 +86,23 @@ export default function Game() {
       <div className="admin-top-bar" style={{
         position: 'absolute', top: 0, left: 0, width: '100%',
         padding: '5px 20px', background: 'rgba(50, 0, 100, 0.8)',
-        zIndex: 100, display: 'flex', justifyContent: 'center', gap: '30px',
+        zIndex: 100, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '30px',
         borderBottom: '1px solid #555', fontSize: '0.9rem', fontWeight: 'bold'
       }}>
         <span>👑 HOST: {adminName || "ROOT"}</span>
         <span style={{ color: '#2ecc71' }}>💰 BANK: ₹ {adminBalance?.toLocaleString()}</span>
+        <button
+          onClick={() => {
+            logoutAdmin();
+            navigate("/admin");
+          }}
+          style={{
+            background: '#e74c3c', color: 'white', border: 'none', padding: '5px 15px',
+            borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold'
+          }}
+        >
+          LOGOUT
+        </button>
       </div>
 
       {/* LEFT SIDE */}

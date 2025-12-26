@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const TeamSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  roomId: { type: mongoose.Schema.Types.ObjectId, ref: "Room", required: true },
   balance: { type: Number, default: 10000 },
   lifelines: {
     type: [Object],

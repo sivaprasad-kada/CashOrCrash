@@ -12,17 +12,7 @@ export default function Home() {
   const btnRef = useRef(null);
   const presentRef = useRef(null);
 
-  // Auth State
-  const [showLogin, setShowLogin] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Should check token ideally
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
   useEffect(() => {
-    // Check if already logged in (optional)
-    const adminUser = localStorage.getItem("adminUser");
-    if (adminUser) setIsAuthenticated(true);
 
     const tl = gsap.timeline();
     gsap.set([presentRef.current, titleRef.current, subRef.current, btnRef.current], { opacity: 0 });
@@ -51,30 +41,7 @@ export default function Home() {
   }, []);
 
   const handleEnterArena = () => {
-    if (isAuthenticated) {
-      navigate("/game");
-    } else {
-      setShowLogin(true);
-    }
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post("http://localhost:5000/api/admin/login", { username, password });
-      if (res.data.success) {
-        localStorage.setItem("adminUser", JSON.stringify(res.data.user)); // Persist logic
-        setIsAuthenticated(true);
-        setShowLogin(false);
-      }
-    } catch (err) {
-      setError("Invalid Credentials");
-    }
-  };
-
-  const handleStartGame = () => {
-    // Here you could call an API to 'init' the game state if needed
-    navigate("/game");
+    navigate("/admin");
   };
 
   return (
@@ -89,42 +56,10 @@ export default function Home() {
         </h1>
         <p ref={subRef} className="sub-text">High-Intensity Competitive Quiz & Bidding Game</p>
 
-        {!isAuthenticated ? (
-          <button ref={btnRef} className="play-btn" onClick={handleEnterArena}>
-            ENTER ARENA
-          </button>
-        ) : (
-          <button ref={btnRef} className="play-btn start-game-btn" onClick={handleStartGame} style={{ background: "#2ecc71", color: "#000" }}>
-            START GAME
-          </button>
-        )}
+        <button ref={btnRef} className="play-btn" onClick={handleEnterArena}>
+          ENTER ARENA
+        </button>
       </div>
-
-      {showLogin && (
-        <div className="modal-backdrop" style={{
-          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-          background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div className="login-box" style={{ background: '#222', padding: '40px', borderRadius: '10px', width: '300px', border: '1px solid #444' }}>
-            <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>Admin Access</h2>
-            <form onSubmit={handleLogin}>
-              <input
-                type="text" placeholder="Username"
-                value={username} onChange={e => setUsername(e.target.value)}
-                style={{ width: '100%', padding: '10px', marginBottom: '10px', background: '#333', border: 'none', color: 'white' }}
-              />
-              <input
-                type="password" placeholder="Password"
-                value={password} onChange={e => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '10px', marginBottom: '20px', background: '#333', border: 'none', color: 'white' }}
-              />
-              {error && <p style={{ color: 'red', fontSize: '0.8rem', marginBottom: '10px' }}>{error}</p>}
-              <button type="submit" style={{ width: '100%', padding: '10px', background: '#f1c40f', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>LOGIN</button>
-              <button type="button" onClick={() => setShowLogin(false)} style={{ width: '100%', marginTop: '10px', background: 'transparent', border: 'none', color: '#aaa', cursor: 'pointer' }}>Cancel</button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -8,15 +8,16 @@ const router = express.Router();
 /* ============================= */
 router.post("/login", async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, roomId } = req.body;
         const admin = await Admin.findOne({ username });
 
         if (!admin || admin.password !== password) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        // [UPDATED] Set status to active
+        // [UPDATED] Set status to active and assign room
         admin.status = "active";
+        if (roomId) admin.roomId = roomId;
         await admin.save();
 
         res.json({
@@ -25,7 +26,8 @@ router.post("/login", async (req, res) => {
                 id: admin._id,
                 username: admin.username,
                 role: admin.role,
-                status: admin.status
+                status: admin.status,
+                roomId: admin.roomId // Return selected room
             }
         });
     } catch (err) {
@@ -156,6 +158,25 @@ router.post("/update-team-resources", async (req, res) => {
     } catch (err) {
         console.error("Resource Update Error:", err);
         res.status(500).json({ error: "Failed to update resources" });
+    }
+});
+
+
+/* ============================= */
+/* ASSIGN ROOM TO TEAM */
+/* ============================= */
+router.post("/assign-team-room", async (req, res) => {
+    try {
+        const { teamId, roomId } = req.body;
+        const team = await import("../models/Team.model.js").then(m => m.default.findById(teamId));
+        if (!team) return res.status(404).json({ error: "Team not found" });
+
+        team.roomId = roomId;
+        await team.save();
+
+        res.json({ success: true, team });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to assign room" });
     }
 });
 

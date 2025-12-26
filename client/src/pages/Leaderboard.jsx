@@ -44,6 +44,9 @@ export default function Leaderboard() {
             </div>
 
             <div className="team-name">{team.name}</div>
+            <div className="team-room" style={{ fontSize: '0.8rem', color: '#aaa', marginBottom: '5px' }}>
+              📍 {team.roomId?.name || 'Lobby'}
+            </div>
             <div className="team-balance">₹ {team.balance}</div>
           </div>
         ))}

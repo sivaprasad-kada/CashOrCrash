@@ -11,7 +11,9 @@ router.get("/leaderboard", async (req, res) => {
     const teams = await Team.find({})
       .sort({ balance: -1 })     // highest balance first
       .limit(10)
-      .select("name balance lifelines");
+      .limit(10)
+      .select("name balance lifelines roomId")
+      .populate("roomId", "name");
 
     res.json(teams);
   } catch (err) {
@@ -23,8 +25,23 @@ router.get("/leaderboard", async (req, res) => {
 /* GET ALL TEAMS (GAME) */
 /* ============================= */
 router.get("/", async (req, res) => {
-  const teams = await Team.find({}, { name: 1, balance: 1, lifelines: 1, unityTokens: 1, sugarCandy: 1 });
+  const { roomId } = req.query;
+  const filter = roomId ? { roomId } : {};
+  const teams = await Team.find(filter, { name: 1, balance: 1, lifelines: 1, unityTokens: 1, sugarCandy: 1 }).populate("roomId", "name");
   res.json(teams);
+});
+
+/* ============================= */
+/* GET SINGLE TEAM */
+/* ============================= */
+router.get("/:id", async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id);
+    if (!team) return res.status(404).json({ error: "Team not found" });
+    res.json(team);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch team" });
+  }
 });
 
 /* ============================= */
@@ -32,8 +49,8 @@ router.get("/", async (req, res) => {
 /* ============================= */
 router.post("/", async (req, res) => {
   try {
-    const { name, balance } = req.body;
-    const newTeam = new Team({ name, balance: balance || 10000 });
+    const { name, balance, roomId } = req.body;
+    const newTeam = new Team({ name, balance: balance || 10000, roomId });
     await newTeam.save();
     res.json(newTeam);
   } catch (err) {

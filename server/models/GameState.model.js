@@ -6,6 +6,7 @@ const GameStateSchema = new mongoose.Schema({
     phase: { type: String, enum: ["IDLE", "BIDDING", "LOCKED", "REVEAL"], default: "IDLE" },
     isGameActive: { type: Boolean, default: false },
     startedByAdminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", default: null }, // Track who started session
+    roomId: { type: mongoose.Schema.Types.ObjectId, ref: "Room" }, // Scope to room
     updatedAt: { type: Date, default: Date.now }
 });
 

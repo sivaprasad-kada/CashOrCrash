@@ -9,6 +9,8 @@ import gameRoutes from "./routes/game.routes.js";
 import teamRoutes from "./routes/team.routes.js";
 import adminRoutes from "./routes/admin.routes.js"; // [NEW]
 import gameStateRoutes from "./routes/gamestate.routes.js"; // [NEW] GameState
+import roomRoutes from "./routes/room.routes.js"; // [NEW] Room Routes
+import sugarCandyRoutes from "./routes/sugarcandy.routes.js"; // [NEW]
 import Admin from "./models/Admin.model.js"; // [NEW] Seed
 
 dotenv.config();
@@ -38,8 +40,10 @@ app.use((req, res, next) => {
 /* ============================= */
 app.use("/api/game", gameRoutes);
 app.use("/api/teams", teamRoutes);
-app.use("/api/admin", adminRoutes); // [NEW]
-app.use("/api/state", gameStateRoutes); // [NEW]
+app.use("/api/admin", adminRoutes);
+app.use("/api/state", gameStateRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/sugarcandy", sugarCandyRoutes); // [NEW]
 
 /* ============================= */
 /* DATABASE */
