@@ -1,0 +1,85 @@
+:root {
+  --bg-black: #0b0b12;
+  --purple: #7c3aed;
+  --purple-glow: #a855f7;
+  --white: #ffffff;
+  --glass: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  background: radial-gradient(circle at top, #1a0b2e, var(--bg-black));
+  color: var(--white);
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+}
+
+.glow {
+  box-shadow: 0 0 20px var(--purple-glow);
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ripple {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  background: rgba(168, 85, 247, 0.6);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple 0.6s ease-out;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  to {
+    transform: translate(-50%, -50%) scale(12);
+    opacity: 0;
+  }
+}
+.loader {
+  text-align: center;
+  padding: 40px;
+  color: var(--purple);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.4; }
+}
+
+.question-card:hover {
+  box-shadow: 0 0 15px var(--purple-glow);
+}
+button {
+  background: var(--purple);
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+}
+
+button:hover {
+  box-shadow: 0 0 15px var(--purple-glow);
+}

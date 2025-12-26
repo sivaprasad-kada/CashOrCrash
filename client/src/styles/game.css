@@ -1,0 +1,1363 @@
+/* ================================================= */
+/* LAYOUT */
+/* ================================================= */
+
+.game-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: 100vh;
+  gap: 20px;
+  padding: 20px;
+}
+
+.side-panel {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* ================================================= */
+/* TEAM SELECTOR */
+/* ================================================= */
+
+.team-selector {
+  margin-bottom: 15px;
+}
+
+.team-selector h4 {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.team-selector select {
+  width: 100%;
+  padding: 8px;
+  background: #12091f;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ================================================= */
+/* BALANCE + LIFELINES */
+/* ================================================= */
+
+.balance-box {
+  margin-top: 15px;
+  padding: 16px;
+  text-align: center;
+  border-radius: 12px;
+}
+
+.balance-title {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  margin-bottom: 8px;
+}
+
+.balance-amount {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--purple);
+  text-shadow: 0 0 12px var(--purple-glow);
+}
+
+.lifeline-box {
+  margin-top: 15px;
+}
+
+.lifelines {
+  display: flex;
+  gap: 8px;
+  font-size: 1.4rem;
+}
+
+/* ================================================= */
+/* QUESTION NUMBER GRID (LEFT PANEL) */
+/* ================================================= */
+
+.question-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.question-number {
+  padding: 15px;
+  font-size: 0.7rem;
+  text-align: center;
+  background: rgba(124, 58, 237, 0.25);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.question-number:hover {
+  background: rgba(124, 58, 237, 0.45);
+}
+
+.question-number.answered {
+  background: rgba(34, 197, 94, 0.6);
+}
+
+/* ================================================= */
+
+.question-number.swapped {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  /* Amber/Orange */
+  border: 1px solid #fbbf24;
+  color: #fff;
+  opacity: 0.9;
+  cursor: not-allowed;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+}
+
+/* ================================================= */
+/* QUESTION CARD GRID (RIGHT PANEL) */
+/* ================================================= */
+
+/*
+Single source of truth:
+- Card size = 80px
+- Columns = 8
+*/
+
+/* ================================================= */
+/* QUESTION CARD GRID (RIGHT PANEL) - 5x5 25 Cards */
+/* ================================================= */
+
+.question-board {
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  /* 5 Columns */
+  grid-auto-rows: 140px;
+  /* Much taller rows */
+  gap: 20px;
+  align-content: start;
+  justify-content: start;
+  overflow-y: auto;
+  padding-left: 20px;
+}
+
+/* ================================================= */
+/* QUESTION CARD */
+/* ================================================= */
+
+.question-box {
+  width: 100%;
+  height: 100%;
+}
+
+.question-card {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+
+  background: rgba(124, 58, 237, 0.15);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+  font-size: 1.5rem;
+  /* Larger font */
+  font-weight: 700;
+  line-height: 1.2;
+
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.question-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 25px var(--purple-glow);
+  background: rgba(124, 58, 237, 0.3);
+}
+
+/* Card content */
+.question-no {
+  font-size: 2rem;
+  margin-bottom: 5px;
+  opacity: 1;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.lock-icon {
+  font-size: 2rem;
+}
+
+/* ================================================= */
+/* SINGLE QUESTION MODE */
+/* ================================================= */
+
+.question-board.single {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.question-box.expanded {
+  width: 800px;
+  height: 500px;
+}
+
+.question-box.expanded .question-card {
+  font-size: 1.5rem;
+  background: rgba(10, 5, 20, 0.95);
+  /* Darker backdrop */
+  border: 1px solid rgba(255, 165, 0, 0.5);
+  /* Orange/Gold border */
+  box-shadow: 0 0 50px rgba(255, 165, 0, 0.2);
+}
+
+/* Selected Question Color Override (Neon Gold) */
+.question-number.selected-active {
+  background: #ffae00 !important;
+  color: black;
+  box-shadow: 0 0 20px #ffae00;
+}
+
+/* Timer Styles */
+.timer-display {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #ffae00;
+  font-family: monospace;
+  text-shadow: 0 0 15px #ffae00;
+  animation: pulse-red 1s infinite alternate;
+}
+
+@keyframes pulse-red {
+  from {
+    color: #ffae00;
+    text-shadow: 0 0 15px #ffae00;
+  }
+
+  to {
+    color: #ff4d4d;
+    text-shadow: 0 0 20px #ff4d4d;
+  }
+}
+
+/* ================================================= */
+/* BUTTONS (GLOBAL) */
+/* ================================================= */
+
+button {
+  background: var(--purple);
+  border: none;
+  color: white;
+  padding: 20px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+button:hover {
+  box-shadow: 0 0 15px var(--purple-glow);
+  transform: translateY(-1px);
+}
+
+/* ================================================= */
+/* BID MODAL (CLEANED & POLISHED) */
+/* ================================================= */
+
+.bid-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 1000;
+}
+
+.question-overlay-container {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  padding: 20px;
+}
+
+.question-overlay-container.critical-state .overlay-backdrop {
+  background: rgba(50, 0, 0, 0.85);
+  /* Red tint */
+  transition: background 0.5s;
+}
+
+.overlay-content-wrapper {
+  width: 100%;
+  max-width: 900px;
+  background: rgba(18, 9, 31, 0.95);
+  border: 1px solid rgba(124, 58, 237, 0.5);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  max-height: 90vh;
+  /* overflow-y: auto;  <-- REMOVED to allow timer to pop out */
+  overflow: visible;
+}
+
+.scrollable-content {
+  overflow-y: auto;
+  max-height: calc(90vh - 60px);
+  /* Adjust based on padding */
+  padding-right: 5px;
+  /* Space for scrollbar */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Custom Scrollbar for inner content */
+.scrollable-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.5);
+  border-radius: 3px;
+}
+
+/* --- TIMER HEADER --- */
+.timer-header {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  /* Center horizontally */
+  transform: translateX(-50%);
+  /* Adjust for width */
+  background: #1a102c;
+  border: 2px solid var(--purple);
+  padding: 10px 25px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  /* Align content horizontally */
+  gap: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  width: max-content;
+}
+
+.timer-header.paused-state {
+  border-color: #fbbf24;
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+}
+
+.timer-header.paused-state .timer-value {
+  color: #fbbf24;
+}
+
+.timer-pause-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.timer-pause-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: white;
+  transform: none;
+  box-shadow: none;
+}
+
+.timer-header.pulse-anim {
+  animation: pulse-border 1s infinite alternate;
+  border-color: #ff4d4d;
+}
+
+.timer-header.pulse-anim .timer-value {
+  color: #ff4d4d;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 10px #ff4d4d;
+    transform: translateX(-50%) scale(1);
+  }
+
+  100% {
+    box-shadow: 0 0 25px #ff4d4d;
+    transform: translateX(-50%) scale(1.05);
+  }
+}
+
+.timer-label {
+  display: none;
+  /* Hide label to save space/center purely */
+}
+
+.timer-value {
+  font-size: 2rem;
+  font-weight: 800;
+  font-family: monospace;
+  color: var(--purple);
+  line-height: 1;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* --- FEEDBACK OVERLAY --- */
+.feedback-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 20px;
+  z-index: 20;
+  backdrop-filter: blur(5px);
+  overflow: hidden;
+  /* For confetti */
+}
+
+.feedback-overlay.correct {
+  background: rgba(46, 204, 113, 0.2);
+  box-shadow: inset 0 0 50px rgba(46, 204, 113, 0.5);
+}
+
+.feedback-overlay.wrong {
+  background: rgba(231, 76, 60, 0.2);
+  box-shadow: inset 0 0 50px rgba(231, 76, 60, 0.5);
+}
+
+.feedback-text {
+  font-size: 3.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  /* Content above confetti */
+}
+
+.feedback-overlay.correct .feedback-text {
+  color: #2ecc71;
+  text-shadow: 0 0 20px rgba(46, 204, 113, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.feedback-overlay.wrong .feedback-text {
+  color: #e74c3c;
+  text-shadow: 0 0 20px rgba(231, 76, 60, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* --- CONFETTI --- */
+.confetti-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+}
+
+.confetti-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* --- QUESTION DISPLAY --- */
+.question-display-card {
+  text-align: center;
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  margin-top: 20px;
+  /* Space for timer */
+  position: relative;
+  /* Context for nested absolute elements if needed */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.question-number-header {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--purple);
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.question-display-card h3 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* --- LIFELINES SECTION --- */
+.lifelines-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lifelines-header {
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  font-weight: 600;
+  opacity: 0.7;
+  margin-bottom: 5px;
+}
+
+.lifeline-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+  border: 1px solid var(--purple);
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.lifeline-btn:hover:not(:disabled) {
+  background: var(--purple);
+  box-shadow: 0 0 15px var(--purple);
+  transform: translateY(-2px);
+}
+
+.lifeline-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+  border-color: #444;
+}
+
+.lifeline-btn.active-used {
+  background: #2ecc71;
+  /* Green for used */
+  border-color: #2ecc71;
+  color: #000;
+  opacity: 1 !important;
+  /* Force visible */
+  filter: none !important;
+  cursor: default;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+}
+
+/* --- HINT DISPLAY --- */
+.hint-container {
+  width: 100%;
+  margin-top: 15px;
+  position: relative;
+  z-index: 10;
+}
+
+.hint-box {
+  background: rgba(255, 255, 255, 0.1);
+  /* Lighter background on top of card */
+  border-left: 4px solid gold;
+  padding: 15px 20px;
+  border-radius: 8px;
+  /* Slightly rounder */
+  display: flex;
+  align-items: center;
+  /* Center text vertically */
+  gap: 15px;
+  animation: hint-glow 2s infinite alternate;
+  text-align: left;
+  /* Keep text left-aligned */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes hint-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+    transform: scale(0.99);
+  }
+
+  100% {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    transform: scale(1);
+  }
+}
+
+.hint-icon {
+  font-size: 1.5rem;
+}
+
+.hint-text {
+  font-size: 1.1rem;
+  font-style: italic;
+  color: #ffd700;
+  /* Gold text for visibility */
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* --- INTERACTION AREA --- */
+.interaction-area {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.lifeline-row {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.options-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  /* Responsive Grid */
+  gap: 20px;
+  width: 100%;
+}
+
+.option-btn {
+  padding: 20px;
+  font-size: 1.1rem;
+  text-align: center;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.disabled-visual {
+  opacity: 0.4;
+  cursor: default;
+  border-color: transparent;
+}
+
+.overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: -1;
+}
+
+.bid-panel {
+  width: 340px;
+  padding: 28px 26px;
+  border-radius: 16px;
+
+  background: rgba(18, 9, 31, 0.95);
+  box-shadow: 0 0 30px rgba(124, 58, 237, 0.5);
+  position: relative;
+  text-align: center;
+}
+
+.bid-panel h2 {
+  margin-bottom: 8px;
+  color: var(--purple);
+  text-shadow: 0 0 12px var(--purple-glow);
+}
+
+.bid-panel p {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-bottom: 16px;
+}
+
+.bid-panel input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+
+  background: #1a102c;
+  color: white;
+
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 18px;
+}
+
+.bid-panel button {
+  width: 100%;
+}
+
+.cancel-bid-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent !important;
+  border: none;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.5) !important;
+  width: auto !important;
+  padding: 5px !important;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.cancel-bid-btn:hover {
+  color: white !important;
+  transform: scale(1.1) !important;
+  box-shadow: none !important;
+}
+
+/* ================================================= */
+/* FLOATING LEADERBOARD BUTTON */
+/* ================================================= */
+
+.leaderboard-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+
+  background: var(--purple);
+  color: #fff;
+  font-size: 1.4rem;
+
+  border: none;
+  cursor: pointer;
+
+  box-shadow: 0 0 20px var(--purple-glow);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leaderboard-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 30px var(--purple-glow);
+}
+
+/* ================================================= */
+/* HIDE SCROLLBARS (KEEP SCROLL FUNCTIONAL) */
+/* ================================================= */
+
+/* Chrome, Edge, Safari */
+.question-board::-webkit-scrollbar,
+.question-grid::-webkit-scrollbar,
+.side-panel::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox */
+.question-board,
+.question-grid,
+.side-panel {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE 10+ */
+}
+
+/* Smooth GPU-backed animation */
+.question-box,
+.question-card {
+  will-change: transform;
+}
+
+/* ================================================= */
+/* OPTIONS PANEL */
+/* ================================================= */
+
+.options-panel {
+  margin-top: 40px;
+  padding: 22px;
+  border-radius: 14px;
+
+  background: rgba(18, 9, 31, 0.9);
+  box-shadow: 0 0 25px rgba(124, 58, 237, 0.45);
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 40px;
+  /* Increased from 10px */
+}
+
+.option-btn {
+  padding: 10px;
+  border-radius: 10px;
+
+  background: rgba(124, 58, 237, 0.2);
+  color: white;
+  border: none;
+  cursor: pointer;
+
+  transition: background 0.2s, transform 0.15s;
+}
+
+.option-btn:hover {
+  background: rgba(124, 58, 237, 0.4);
+  transform: translateY(-1px);
+}
+
+.option-btn.selected {
+  background: var(--purple);
+  box-shadow: 0 0 15px var(--purple-glow);
+}
+
+.option-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.submit-answer-btn {
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: 22px;
+
+  background: var(--purple);
+  color: white;
+  border: none;
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.submit-answer-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================= */
+/* RESULT COLORS */
+/* ============================= */
+
+.question-box.correct .question-card {
+  background: rgba(34, 197, 94, 0.25);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
+}
+
+.question-box.wrong .question-card {
+  background: rgba(239, 68, 68, 0.25);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+}
+
+/* Disable locked cards */
+.question-box.correct,
+.question-box.wrong {
+  pointer-events: none;
+}
+
+/* ============================= */
+/* QUESTION NUMBER STATES */
+/* ============================= */
+
+.question-number {
+  padding: 15px;
+  font-size: 0.7rem;
+  text-align: center;
+  background: rgba(124, 58, 237, 0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  color: white;
+  transition: 0.2s;
+}
+
+.question-number:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.45);
+}
+
+/* ✅ CORRECT */
+.question-number.correct {
+  background: rgba(34, 197, 94, 0.7);
+  cursor: not-allowed;
+}
+
+/* ❌ WRONG */
+.question-number.wrong {
+  background: rgba(239, 68, 68, 0.7);
+  cursor: not-allowed;
+}
+
+.question-number:disabled {
+  opacity: 0.85;
+}
+
+/* ============================= */
+/* QUESTION + LIFELINE LAYOUT */
+/* ============================= */
+/* ============================= */
+/* QUESTION REVEAL STACK */
+/* ============================= */
+
+.question-focus-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ============================= */
+/* LIFELINE PANEL */
+/* ============================= */
+
+.lifeline-panel {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.lifeline-btn {
+  min-width: 150px;
+  padding: 10px 16px;
+  border-radius: 22px;
+  background: rgba(124, 58, 237, 0.25);
+  color: white;
+  border: 1px solid rgba(124, 58, 237, 0.6);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.lifeline-btn:hover {
+  background: rgba(124, 58, 237, 0.45);
+  box-shadow: 0 0 15px var(--purple-glow);
+  transform: scale(1.05);
+}
+
+/* ============================= */
+/* LIFELINE PANEL */
+/* ============================= */
+
+.lifeline-panel {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+
+.lifeline-btn {
+  min-width: 160px;
+  padding: 10px 14px;
+  border-radius: 22px;
+  background: rgba(124, 58, 237, 0.25);
+  color: white;
+  border: 1px solid rgba(124, 58, 237, 0.6);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.lifeline-btn:hover {
+  background: rgba(124, 58, 237, 0.45);
+  box-shadow: 0 0 15px var(--purple-glow);
+  transform: scale(1.05);
+}
+
+/* ============================= */
+/* TEAM SELECTOR (NEW) */
+/* ============================= */
+
+.team-selector-container {
+  margin-bottom: 25px;
+}
+
+.team-selector-container h4 {
+  font-size: 0.8rem;
+  letter-spacing: 1.5px;
+  opacity: 0.7;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.team-scroll-wrapper {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--purple) transparent;
+}
+
+.team-card {
+  min-width: 110px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  transition: 0.3s;
+}
+
+.team-card:hover {
+  background: rgba(124, 58, 237, 0.15);
+}
+
+.team-card.active {
+  background: rgba(124, 58, 237, 0.3);
+  border-color: #a855f7;
+  box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
+}
+
+.team-icon {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+
+.team-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.active-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 5px #10b981;
+}
+
+/* ============================= */
+/* LIFELINES REVAMP */
+/* ============================= */
+
+.lifeline-box {
+  margin-top: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lifeline-title {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.lifelines-bar-container {
+  display: flex;
+  gap: 8px;
+}
+
+.life-bar {
+  height: 12px;
+  flex: 1;
+  background: #2563eb;
+  /* Blue */
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+  transition: 0.3s;
+}
+
+/* Initially Broken State (if loaded broken) */
+.life-bar.broken {
+  background: #333;
+  box-shadow: none;
+  opacity: 0.3;
+}
+
+/* ================================================= */
+/* LOCKED / ANSWERED STATE (Overrides) */
+/* ================================================= */
+
+.question-number.locked-state {
+  background: #4b5563;
+  /* Gray */
+  color: #c0c0c0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.question-number.locked-state:hover {
+  background: #4b5563;
+  transform: none;
+}
+
+/* Ensure Correct/Wrong takes precedence over locked-state */
+.question-number.correct {
+  background: rgba(34, 197, 94, 0.8) !important;
+  color: white !important;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.6) !important;
+}
+
+.question-number.wrong {
+  background: rgba(239, 68, 68, 0.8) !important;
+  color: white !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6) !important;
+}
+
+/* ================================================= */
+/* LIFELINE SELECTION & DISPLAY (NEW) */
+/* ================================================= */
+
+.lifeline-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.lifeline-select-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px;
+  font-size: 0.8rem;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.3s;
+  border-radius: 8px;
+}
+
+.lifeline-select-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lifeline-select-btn.selected {
+  background: var(--purple);
+  border-color: var(--purple-glow);
+  box-shadow: 0 0 10px var(--purple-glow);
+}
+
+.confirm-lifelines-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  font-size: 0.9rem;
+}
+
+.lifelines-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lifeline-status-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.lifeline-status-card.available {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.lifelines-bar-container {
+  display: grid;
+  /* Fix overflow: use minmax or strictly fit 3 columns */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  /* reduce gap slightly */
+  margin-top: 10px;
+  width: 100%;
+}
+
+.lifeline-status-card {
+  display: flex;
+  flex-direction: row;
+  /* Horizontal alignment */
+  align-items: center;
+  justify-content: space-between;
+  /* Spread content out */
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: 0.3s;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+  /* Align text left */
+  gap: 10px;
+  position: relative;
+  min-height: 50px;
+  /* Reduced height */
+}
+
+/* Interactive version for QuestionOverlay */
+button.lifeline-status-card {
+  cursor: pointer;
+  user-select: none;
+}
+
+button.lifeline-status-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+button.lifeline-status-card:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.lifeline-icon-large {
+  font-size: 1.2rem;
+  /* Consistent size */
+  margin-bottom: 0;
+  /* No margin bottom needed for row */
+  margin-right: 5px;
+}
+
+.status-indicator {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(0, 255, 0, 0.2);
+  color: #4ade80;
+  margin-top: 0;
+  /* Reset margin */
+  margin-left: auto;
+  /* Push to right */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Side Panel Override: Vertical Layout */
+.lifelines-bar-container .lifeline-status-card {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  min-height: 90px;
+  padding: 10px;
+}
+
+.lifelines-bar-container .lifeline-icon-large {
+  margin-right: 0;
+  margin-bottom: 5px;
+  font-size: 1.5rem;
+}
+
+.lifelines-bar-container .status-indicator {
+  margin-left: 0;
+  margin-top: auto;
+}
+
+
+
+
+
+
+.status-indicator {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(0, 255, 0, 0.2);
+  color: #4ade80;
+  margin-top: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lifeline-status-card.used .status-indicator {
+  background: rgba(255, 0, 0, 0.2);
+  color: #f87171;
+}
+
+.lifelines-bar-container {
+  display: grid;
+  /* Use grid instead of flex column */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.lifeline-status-card.used,
+.lifeline-status-card.locked-rule {
+  background: rgba(255, 77, 77, 0.1);
+  border: 1px solid rgba(255, 77, 77, 0.2);
+  color: #ff4d4d;
+  opacity: 0.7;
+  filter: grayscale(0.5);
+  text-decoration: line-through;
+}
+
+.lifeline-status-card.used .status-indicator,
+.lifeline-status-card.locked-rule .status-indicator {
+  background: rgba(255, 0, 0, 0.2);
+  color: #f87171;
+}
+
+.lifeline-icon {
+  font-size: 1.2rem;
+}
+
+.lifeline-btn.used-state {
+  background: rgba(255, 77, 77, 0.2);
+  border-color: #ff4d4d;
+  color: #ff4d4d;
+  text-decoration: line-through;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.lifeline-btn.locked-state {
+  opacity: 0.3;
+  border-style: dashed;
+  cursor: not-allowed;
+}

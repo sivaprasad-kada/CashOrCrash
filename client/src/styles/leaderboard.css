@@ -1,0 +1,135 @@
+/* ============================= */
+/* LEADERBOARD PAGE */
+/* ============================= */
+
+.leaderboard-page {
+  min-height: 100vh;
+  padding: 40px;
+  text-align: center;
+}
+
+.leaderboard-title {
+  margin-bottom: 30px;
+  color: var(--purple);
+  text-shadow: 0 0 15px var(--purple-glow);
+}
+
+/* ============================= */
+/* GRID: EXACTLY 5 PER ROW */
+/* ============================= */
+
+.leaderboard-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ============================= */
+/* TEAM CARD */
+/* ============================= */
+
+.team-card {
+  padding: 22px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 18px rgba(124, 58, 237, 0.25);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.team-card:hover {
+  transform: translateY(-6px) scale(1.05);
+}
+
+/* ============================= */
+/* RANK BADGE */
+/* ============================= */
+
+.team-rank {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+/* ============================= */
+/* AVATAR */
+/* ============================= */
+
+.team-avatar {
+  width: 64px;
+  height: 64px;
+  margin: 12px auto;
+  border-radius: 50%;
+  background: var(--purple);
+  color: white;
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px var(--purple-glow);
+}
+
+/* ============================= */
+/* NAME & BALANCE */
+/* ============================= */
+
+.team-name {
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.team-balance {
+  margin-top: 6px;
+  color: var(--purple);
+  font-weight: 700;
+}
+
+/* ============================= */
+/* TOP 3 HIGHLIGHTS */
+/* ============================= */
+
+.team-card.gold {
+  border: 2px solid gold;
+  box-shadow: 0 0 30px gold;
+}
+
+.team-card.silver {
+  border: 2px solid silver;
+  box-shadow: 0 0 30px silver;
+}
+
+.team-card.bronze {
+  border: 2px solid #cd7f32;
+  box-shadow: 0 0 30px #cd7f32;
+}
+
+/* ============================= */
+/* BACK TO GAME BUTTON */
+/* ============================= */
+
+.back-to-game-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--purple);
+  color: white;
+  font-size: 1.4rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 20px var(--purple-glow);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-to-game-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 30px var(--purple-glow);
+}

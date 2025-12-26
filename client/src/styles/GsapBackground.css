@@ -1,0 +1,23 @@
+.gsap-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.lifeline-status-card.used {
+    background: #ff444455 !important;
+    /* Red with opacity */
+    border: 1px solid #ff0000 !important;
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    color: #ffdada !important;
+}
+
+.lifeline-status-card.used .status-indicator {
+    background: #ff0000 !important;
+    color: white !important;
+}
