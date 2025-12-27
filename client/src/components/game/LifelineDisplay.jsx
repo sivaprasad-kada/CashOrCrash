@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 
 export default function LifelineDisplay() {
-  const { activeTeam, selectedQuestion } = useGame();
+  const { activeTeam, selectedQuestion, refreshTeamBalance } = useGame();
   const barsRef = useRef([]);
 
   if (!activeTeam) {
@@ -12,7 +12,20 @@ export default function LifelineDisplay() {
 
   return (
     <div className="lifeline-box">
-      <div className="lifeline-title">LIFELINES</div>
+      <div className="lifeline-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        LIFELINES
+        <button
+          onClick={() => {
+            if (activeTeam?._id) {
+              refreshTeamBalance(activeTeam._id);
+            }
+          }}
+          style={{ background: 'transparent', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '1rem' }}
+          title="Sync Lifelines"
+        >
+          ↻
+        </button>
+      </div>
       <div className="lifelines-bar-container">
         {(() => {
           const LIFELINE_KEYS = [

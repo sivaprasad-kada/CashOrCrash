@@ -105,6 +105,7 @@ export default function Admin() {
     };
 
     const handleLogout = async () => {
+        if (!window.confirm("Are you sure you want to logout?")) return;
         await logoutAdmin();
         setTeams([]);
         navigate("/admin/login");
@@ -196,6 +197,17 @@ export default function Admin() {
             fetchData(); // Refresh room lists
             alert("Room Created");
         } catch (err) { alert("Failed"); }
+    };
+
+    const handleDeleteAdmin = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this admin?")) return;
+        try {
+            await axios.delete(`${ADMIN_API}/${id}`);
+            fetchData();
+            alert("Admin Deleted");
+        } catch (err) {
+            alert(err.response?.data?.error || "Failed");
+        }
     };
 
     const createAdmin = async (e) => {
@@ -399,9 +411,27 @@ export default function Admin() {
 
                             <div className="admin-list" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                                 {admins.map(a => (
-                                    <div key={a._id} className="admin-item" style={{ fontSize: '0.8rem', padding: '5px', borderBottom: '1px solid #333' }}>
-                                        <b>{a.username}</b> ({a.role})
-                                        {a.roomId && <span style={{ color: '#aaa', marginLeft: '5px' }}>{"->"} {a.roomId.name || "Room"}</span>}
+                                    <div key={a._id} className="admin-item" style={{ fontSize: '0.8rem', padding: '5px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <b>{a.username}</b> ({a.role})
+                                            {a.roomId && <span style={{ color: 'var(--text-dim)', marginLeft: '5px' }}>{"->"} {a.roomId.name || "Room"}</span>}
+                                        </div>
+                                        {user._id !== a._id && (
+                                            <button
+                                                onClick={() => handleDeleteAdmin(a._id)}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: 'var(--danger)',
+                                                    cursor: 'pointer',
+                                                    fontSize: '1rem',
+                                                    padding: '0 5px'
+                                                }}
+                                                title="Delete Admin"
+                                            >
+                                                🗑️
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -417,14 +447,15 @@ export default function Admin() {
                     <div style={{
                         position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
                         background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center',
-                        zIndex: 1000
+                        zIndex: 1000, backdropFilter: 'blur(10px)'
                     }}>
                         <div style={{
-                            background: '#1a1a2e', padding: '30px', borderRadius: '15px', width: '500px',
-                            border: '2px solid #6c5ce7', color: 'white', textAlign: 'center'
+                            background: 'var(--glass-bg)', padding: '30px', borderRadius: '15px', width: '500px',
+                            border: '1px solid var(--purple-main)', color: 'white', textAlign: 'center',
+                            boxShadow: '0 0 50px rgba(0,0,0,0.5)'
                         }}>
-                            <h2 style={{ color: '#ffd700', marginBottom: '20px' }}>MANAGE LIFELINES</h2>
-                            <h3 style={{ marginBottom: '30px' }}>TEAM: {selectedTeamForLifeline.name}</h3>
+                            <h2 style={{ color: 'var(--gold)', marginBottom: '20px' }}>MANAGE LIFELINES</h2>
+                            <h3 style={{ marginBottom: '30px', color: 'var(--white)' }}>TEAM: {selectedTeamForLifeline.name}</h3>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 {/* 50-50 */}
@@ -432,17 +463,17 @@ export default function Admin() {
                                     const l50 = selectedTeamForLifeline.lifelines?.find(l => l.hasOwnProperty("50-50"));
                                     const isUsed50 = l50 ? l50["50-50"] : false;
                                     return (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#333', padding: '10px 20px', borderRadius: '8px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                                             <span style={{ fontWeight: 'bold' }}>50-50</span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                <span style={{ color: isUsed50 ? '#ff4d4d' : '#2ecc71', fontWeight: 'bold' }}>
+                                                <span style={{ color: isUsed50 ? 'var(--danger)' : 'var(--neon-blue)', fontWeight: 'bold' }}>
                                                     {isUsed50 ? "USED (Disabled)" : "READY (Enabled)"}
                                                 </span>
                                                 <button
                                                     onClick={() => updateLifeline(selectedTeamForLifeline._id, "50-50", isUsed50 ? "reset" : "remove")}
                                                     style={{
                                                         padding: '8px 15px', borderRadius: '5px', border: 'none', cursor: 'pointer',
-                                                        background: isUsed50 ? '#2ecc71' : '#ff4d4d', color: isUsed50 ? 'black' : 'white', fontWeight: 'bold'
+                                                        background: isUsed50 ? 'var(--neon-blue)' : 'var(--danger)', color: isUsed50 ? 'black' : 'white', fontWeight: 'bold'
                                                     }}
                                                 >
                                                     {isUsed50 ? "↺ RE-ENABLE" : "✕ DISABLE"}
@@ -457,17 +488,17 @@ export default function Admin() {
                                     const lSwap = selectedTeamForLifeline.lifelines?.find(l => l.hasOwnProperty("QUESTION-SWAP"));
                                     const isUsedSwap = lSwap ? lSwap["QUESTION-SWAP"] : false;
                                     return (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#333', padding: '10px 20px', borderRadius: '8px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                                             <span style={{ fontWeight: 'bold' }}>QUESTION SWAP</span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                <span style={{ color: isUsedSwap ? '#ff4d4d' : '#2ecc71', fontWeight: 'bold' }}>
+                                                <span style={{ color: isUsedSwap ? 'var(--danger)' : 'var(--neon-blue)', fontWeight: 'bold' }}>
                                                     {isUsedSwap ? "USED (Disabled)" : "READY (Enabled)"}
                                                 </span>
                                                 <button
                                                     onClick={() => updateLifeline(selectedTeamForLifeline._id, "QUESTION-SWAP", isUsedSwap ? "reset" : "remove")}
                                                     style={{
                                                         padding: '8px 15px', borderRadius: '5px', border: 'none', cursor: 'pointer',
-                                                        background: isUsedSwap ? '#2ecc71' : '#ff4d4d', color: isUsedSwap ? 'black' : 'white', fontWeight: 'bold'
+                                                        background: isUsedSwap ? 'var(--neon-blue)' : 'var(--danger)', color: isUsedSwap ? 'black' : 'white', fontWeight: 'bold'
                                                     }}
                                                 >
                                                     {isUsedSwap ? "↺ RE-ENABLE" : "✕ DISABLE"}

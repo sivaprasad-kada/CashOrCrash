@@ -118,8 +118,10 @@ export default function Game() {
 
         <button
           onClick={() => {
-            logoutAdmin();
-            navigate("/admin");
+            if (window.confirm("Are you sure you want to logout?")) {
+              logoutAdmin();
+              navigate("/admin");
+            }
           }}
           style={{
             background: '#e74c3c', color: 'white', border: 'none', padding: '5px 15px',

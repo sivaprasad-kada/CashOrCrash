@@ -308,19 +308,12 @@ export default function QuestionOverlay() {
                                 position: "absolute",
                                 top: "15px",
                                 right: "15px",
-                                background: "rgba(255, 255, 255, 0.1)",
-                                color: "#fff",
-                                border: "1px solid rgba(255, 255, 255, 0.2)",
-                                borderRadius: "50%",
-                                width: "36px",
-                                height: "36px",
+                                background: "transparent",
+                                border: "none",
+                                color: "var(--danger)",
+                                fontSize: "1.5rem",
                                 cursor: "pointer",
-                                fontSize: "1.2rem",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
                                 zIndex: 100,
-                                transition: "all 0.2s"
                             }}
                         >
                             ✕
@@ -334,11 +327,11 @@ export default function QuestionOverlay() {
                                 <span className="question-category-tag" style={{
                                     display: "inline-block",
                                     fontSize: "0.8rem",
-                                    background: "#333",
+                                    background: "rgba(0,0,0,0.3)",
                                     padding: "4px 8px",
                                     borderRadius: "4px",
                                     marginBottom: "10px",
-                                    color: "#aaa",
+                                    color: "var(--text-dim)",
                                     textTransform: "uppercase"
                                 }}>
                                     {selectedQuestion.category || "General"}
@@ -349,7 +342,7 @@ export default function QuestionOverlay() {
                                         <img
                                             src={`http://localhost:5000${selectedQuestion.image}`}
                                             alt="Question"
-                                            style={{ width: "100%", maxHeight: "300px", objectFit: "contain", border: "1px solid #444" }}
+                                            style={{ width: "100%", maxHeight: "300px", objectFit: "contain", border: "1px solid var(--glass-border)" }}
                                         />
                                     </div>
                                 )}
@@ -360,9 +353,78 @@ export default function QuestionOverlay() {
                             {/* INTERACTIVE AREA */}
                             {!result && !feedback && (
                                 <div className="interaction-area">
-                                    {/* LIFELINES HEADER */}
-                                    {/* LIFELINES HEADER */}
-                                    <div className="lifelines-section">
+
+                                    {/* CONFIRMATION DIALOG */}
+                                    {confirmLifeline && (
+                                        <div className="overlay-backdrop" style={{ zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            <div className="bid-panel">
+                                                <h2>Confirm Lifeline</h2>
+                                                <p>Are you sure you want to use <strong>{confirmLifeline.label}</strong>?</p>
+                                                <p style={{ fontSize: "0.8rem", color: "var(--text-dim)" }}>This action cannot be undone.</p>
+
+                                                <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+                                                    <button
+                                                        onClick={() => setConfirmLifeline(null)}
+                                                        style={{ background: "rgba(255,255,255,0.1)", border: "1px solid var(--glass-border)" }}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={() => executeLifeline(confirmLifeline)}
+                                                        style={{ background: "#2ecc71", color: "#000" }}
+                                                    >
+                                                        CONFIRM
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="options-grid-responsive" ref={optionsGridRef}>
+                                        {(() => {
+                                            const fiftyFiftyActive = localFiftyFifty;
+
+                                            let hiddenIndices = [];
+                                            if (fiftyFiftyActive && selectedQuestion) {
+                                                let count = 0;
+                                                selectedQuestion.options.forEach((opt, idx) => {
+                                                    if (count < 2 && opt !== selectedQuestion.correct) {
+                                                        hiddenIndices.push(idx);
+                                                        count++;
+                                                    }
+                                                });
+                                            }
+
+                                            return selectedQuestion.options.map((opt, index) => {
+                                                const uniqueKey = opt;
+                                                const isHidden = hiddenIndices.includes(index);
+
+                                                if (isHidden) return null;
+
+                                                return (
+                                                    <button
+                                                        key={index}
+                                                        data-option={uniqueKey}
+                                                        ref={el => optionRefs.current[index] = el}
+                                                        className={`option-btn ${selectedOption === uniqueKey ? "selected" : ""}`}
+                                                        onClick={() => setSelectedOption(uniqueKey)}
+                                                        disabled={submitting}
+                                                    >
+                                                        {opt}
+                                                    </button>
+                                                );
+                                            });
+                                        })()}
+                                    </div>
+
+                                    <div className="action-row">
+                                        <button onClick={submit} disabled={submitting || !selectedOption} className="submit-answer-btn">
+                                            {submitting ? "VERIFYING..." : "LOCK ANSWER"}
+                                        </button>
+                                    </div>
+
+                                    {/* LIFELINES MOVED TO BOTTOM */}
+                                    <div className="lifelines-section" style={{ marginTop: '20px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
                                         <div className="lifelines-header">LIFELINES ({activeTeam?.lifelines?.reduce((acc, curr) => acc + (Object.values(curr)[0] === true ? 1 : 0), 0) || 0}/2)</div>
                                         <div className="lifeline-row">
                                             {(() => {
@@ -373,12 +435,9 @@ export default function QuestionOverlay() {
                                                 ];
 
                                                 return LIFELINE_KEYS.map((item) => {
-                                                    // Find usage in team
-                                                    // Structure: [{ "50-50": false }, ...]
                                                     const lifelineObj = activeTeam?.lifelines?.find(l => l.hasOwnProperty(item.id));
                                                     const isUsed = lifelineObj ? lifelineObj[item.id] === true : false;
 
-                                                    // Global limit check
                                                     const totalUsed = activeTeam?.lifelines?.reduce((acc, curr) => acc + (Object.values(curr)[0] === true ? 1 : 0), 0) || 0;
                                                     const isLockedGlobally = totalUsed >= 2;
 
@@ -403,79 +462,6 @@ export default function QuestionOverlay() {
                                             })()}
                                         </div>
                                     </div>
-
-                                    {/* CONFIRMATION DIALOG */}
-                                    {confirmLifeline && (
-                                        <div className="overlay-backdrop" style={{ zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                            <div className="bid-panel">
-                                                <h2>Confirm Lifeline</h2>
-                                                <p>Are you sure you want to use <strong>{confirmLifeline.label}</strong>?</p>
-                                                <p style={{ fontSize: "0.8rem", color: "#aaa" }}>This action cannot be undone.</p>
-
-                                                <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-                                                    <button
-                                                        onClick={() => setConfirmLifeline(null)}
-                                                        style={{ background: "rgba(255,255,255,0.1)", border: "1px solid #444" }}
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    <button
-                                                        onClick={() => executeLifeline(confirmLifeline)}
-                                                        style={{ background: "#2ecc71", color: "#000" }}
-                                                    >
-                                                        CONFIRM
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="options-grid-responsive" ref={optionsGridRef}>
-                                        {(() => {
-                                            // [FIX] Use Local Scoped State for 50-50 VISIBILITY
-                                            const fiftyFiftyActive = localFiftyFifty;
-
-                                            // Calculate which indices to hide (deterministically based on question text hash or simple order)
-                                            // We want to hide 2 wrong answers.
-                                            let hiddenIndices = [];
-                                            if (fiftyFiftyActive && selectedQuestion) {
-                                                let count = 0;
-                                                selectedQuestion.options.forEach((opt, idx) => {
-                                                    if (count < 2 && opt !== selectedQuestion.correct) {
-                                                        hiddenIndices.push(idx);
-                                                        count++;
-                                                    }
-                                                });
-                                            }
-
-                                            return selectedQuestion.options.map((opt, index) => {
-                                                const uniqueKey = opt;
-                                                const isHidden = hiddenIndices.includes(index);
-
-                                                // [FIX] Remove from DOM if hidden (Requirement: "REMOVE... completely")
-                                                if (isHidden) return null;
-
-                                                return (
-                                                    <button
-                                                        key={index}
-                                                        data-option={uniqueKey}
-                                                        ref={el => optionRefs.current[index] = el}
-                                                        className={`option-btn ${selectedOption === uniqueKey ? "selected" : ""}`}
-                                                        onClick={() => setSelectedOption(uniqueKey)}
-                                                        disabled={submitting}
-                                                    >
-                                                        {opt}
-                                                    </button>
-                                                );
-                                            });
-                                        })()}
-                                    </div>
-
-                                    <div className="action-row">
-                                        <button onClick={submit} disabled={submitting || !selectedOption} className="submit-answer-btn">
-                                            {submitting ? "VERIFYING..." : "LOCK ANSWER"}
-                                        </button>
-                                    </div>
                                 </div>
                             )}
 
@@ -491,7 +477,8 @@ export default function QuestionOverlay() {
                         </div>
                     </motion.div>
                 </motion.div>
-            )}
-        </AnimatePresence>
+            )
+            }
+        </AnimatePresence >
     );
 }

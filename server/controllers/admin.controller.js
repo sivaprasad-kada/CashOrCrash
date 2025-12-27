@@ -281,3 +281,33 @@ export const updateTeamLifeline = async (req, res) => {
         res.status(500).json({ error: "Failed to update lifeline" });
     }
 };
+
+/* ============================= */
+/* DELETE ADMIN (ROOT ONLY) */
+/* ============================= */
+export const deleteAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // 1. Authorization Check (Already covered by adminAuth + logic here or route wrapper, but let's be safe)
+        // adminAuth gives us req.role
+        if (req.role !== 'root') {
+            return res.status(403).json({ error: "Only Root can delete admins" });
+        }
+
+        // 2. Prevent deleting self
+        if (req.user._id.toString() === id) {
+            return res.status(400).json({ error: "Cannot delete yourself" });
+        }
+
+        const deletedAdmin = await Admin.findByIdAndDelete(id);
+
+        if (!deletedAdmin) {
+            return res.status(404).json({ error: "Admin not found" });
+        }
+
+        res.json({ success: true, message: "Admin deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to delete admin" });
+    }
+};

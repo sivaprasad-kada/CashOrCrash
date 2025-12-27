@@ -1,22 +1,44 @@
 :root {
-  --bg-black: #0b0b12;
-  --purple: #7c3aed;
-  --purple-glow: #a855f7;
+  /* BACKGROUNDS */
+  --bg-deep: #050507;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #2e1065 0%, #000000 85%);
+
+  /* ACCENTS */
+  --purple-main: #7c3aed;
+  --purple-bright: #a855f7;
+  --neon-pink: #f472b6;
+  --neon-blue: #0ea5e9;
+  --gold: #fbbf24;
+  --gold-glow: #d97706;
+  --danger: #ef4444;
+  --danger-glow: #b91c1c;
+  --success: #2ecc71;
+  --success-glow: #15803d;
+
+  /* GLASSMORPHISM */
+  --glass-bg: rgba(30, 30, 40, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.05);
+
+  /* TEXT */
   --white: #ffffff;
-  --glass: rgba(255, 255, 255, 0.08);
+  --text-dim: #94a3b8;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  /* Recommend Google Font 'Outfit' if available, else system */
 }
 
 body {
-  background: radial-gradient(circle at top, #1a0b2e, var(--bg-black));
+  background: var(--bg-gradient);
+  background-attachment: fixed;
   color: var(--white);
   overflow-x: hidden;
+  min-height: 100vh;
 }
 
 a {
@@ -24,15 +46,23 @@ a {
   color: inherit;
 }
 
+/* PREMIUM GLASS CARD */
 .glass {
-  background: var(--glass);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 16px;
 }
 
+/* NEON GLOW EFFECTS */
 .glow {
-  box-shadow: 0 0 20px var(--purple-glow);
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
 }
 
 .center {
@@ -40,11 +70,39 @@ a {
   align-items: center;
   justify-content: center;
 }
+
+/* MODERN BUTTONS */
+button {
+  background: linear-gradient(135deg, var(--purple-main), #6d28d9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  /* Slightly squarer for modern tech feel */
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(124, 58, 237, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* RIPPLE EFFECT */
 .ripple {
   position: fixed;
   width: 20px;
   height: 20px;
-  background: rgba(168, 85, 247, 0.6);
+  background: rgba(255, 255, 255, 0.4);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   animation: ripple 0.6s ease-out;
@@ -53,33 +111,33 @@ a {
 
 @keyframes ripple {
   to {
-    transform: translate(-50%, -50%) scale(12);
+    transform: translate(-50%, -50%) scale(15);
     opacity: 0;
   }
 }
+
 .loader {
   text-align: center;
   padding: 40px;
-  color: var(--purple);
+  color: var(--neon-blue);
   animation: pulse 1.5s infinite;
+  font-weight: bold;
+  letter-spacing: 2px;
 }
 
 @keyframes pulse {
-  50% { opacity: 0.4; }
-}
+  0% {
+    opacity: 0.4;
+    text-shadow: 0 0 10px var(--neon-blue);
+  }
 
-.question-card:hover {
-  box-shadow: 0 0 15px var(--purple-glow);
-}
-button {
-  background: var(--purple);
-  border: none;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 25px;
-  cursor: pointer;
-}
+  50% {
+    opacity: 1;
+    text-shadow: 0 0 20px var(--neon-blue);
+  }
 
-button:hover {
-  box-shadow: 0 0 15px var(--purple-glow);
+  100% {
+    opacity: 0.4;
+    text-shadow: 0 0 10px var(--neon-blue);
+  }
 }

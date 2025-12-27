@@ -22,17 +22,18 @@ export default function BalanceDisplay() {
           title="Refresh Team Balance"
           style={{
             background: 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
+            border: '1px solid var(--glass-border)',
             borderRadius: '50%',
-            width: '20px',
-            height: '20px',
-            fontSize: '10px',
-            color: 'rgba(255, 255, 255, 0.7)',
+            width: '24px',
+            height: '24px',
+            fontSize: '12px',
+            color: 'var(--text-dim)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 0
+            padding: 0,
+            marginLeft: '5px'
           }}
         >
           ↻

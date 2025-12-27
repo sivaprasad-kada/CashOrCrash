@@ -100,13 +100,14 @@ export default function TimerModal({ isOpen, onClose }) {
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.8, opacity: 0 }}
                         style={{
-                            background: "#12091f",
-                            border: "1px solid #7c3aed",
+                            background: "var(--glass-bg)",
+                            backdropFilter: "blur(20px)",
+                            border: "1px solid var(--glass-border)",
                             borderRadius: "20px",
                             padding: "30px",
                             width: "400px",
                             textAlign: "center",
-                            boxShadow: "0 0 40px rgba(124, 58, 237, 0.4)",
+                            boxShadow: "0 0 50px rgba(124, 58, 237, 0.3)",
                             position: "relative",
                         }}
                     >
@@ -119,7 +120,7 @@ export default function TimerModal({ isOpen, onClose }) {
                                 right: "15px",
                                 background: "transparent",
                                 border: "none",
-                                color: "#ff4444",
+                                color: "var(--danger)",
                                 fontSize: "1.5rem",
                                 cursor: "pointer",
                             }}
@@ -127,7 +128,7 @@ export default function TimerModal({ isOpen, onClose }) {
                             ✕
                         </button>
 
-                        <h2 style={{ color: "#fff", marginBottom: "20px" }}>⏱️ TIMER</h2>
+                        <h2 style={{ color: "var(--white)", marginBottom: "20px" }}>⏱️ TIMER</h2>
 
                         {/* DISPLAY */}
                         <div
@@ -136,7 +137,7 @@ export default function TimerModal({ isOpen, onClose }) {
                                 fontSize: "4rem",
                                 fontWeight: "bold",
                                 fontFamily: "monospace",
-                                color: totalSeconds <= 10 && totalSeconds > 0 ? "#ff4444" : "#2ecc71",
+                                color: totalSeconds <= 10 && totalSeconds > 0 ? "var(--danger)" : "var(--neon-blue)",
                                 textShadow: "0 0 20px rgba(255,255,255,0.1)",
                                 margin: "20px 0",
                             }}
@@ -147,7 +148,7 @@ export default function TimerModal({ isOpen, onClose }) {
                                         type="number"
                                         value={minutes}
                                         onChange={(e) => setMinutes(Math.max(0, parseInt(e.target.value) || 0))}
-                                        style={{ width: '80px', background: '#222', border: '1px solid #555', color: 'white', fontSize: '2rem', textAlign: 'center', borderRadius: '5px' }}
+                                        style={{ width: '80px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', color: 'white', fontSize: '2rem', textAlign: 'center', borderRadius: '5px' }}
                                     />
                                     <span style={{ fontSize: '2rem', color: 'white' }}>:</span>
                                     <input
@@ -165,28 +166,14 @@ export default function TimerModal({ isOpen, onClose }) {
                             {!isRunning ? (
                                 <button
                                     onClick={startTimer}
-                                    style={{
-                                        background: "#2ecc71",
-                                        color: "black",
-                                        fontWeight: "bold",
-                                        padding: "10px 20px",
-                                        borderRadius: "5px",
-                                        border: "none",
-                                    }}
+                                    style={{ background: "#10b981" }} // Keep specific colors for actions logic
                                 >
                                     START
                                 </button>
                             ) : (
                                 <button
                                     onClick={pauseTimer}
-                                    style={{
-                                        background: "#f1c40f",
-                                        color: "black",
-                                        fontWeight: "bold",
-                                        padding: "10px 20px",
-                                        borderRadius: "5px",
-                                        border: "none",
-                                    }}
+                                    style={{ background: "#f59e0b" }}
                                 >
                                     PAUSE
                                 </button>
@@ -194,14 +181,7 @@ export default function TimerModal({ isOpen, onClose }) {
 
                             <button
                                 onClick={resetTimer}
-                                style={{
-                                    background: "#e74c3c",
-                                    color: "white",
-                                    fontWeight: "bold",
-                                    padding: "10px 20px",
-                                    borderRadius: "5px",
-                                    border: "none",
-                                }}
+                                style={{ background: "var(--danger)" }}
                             >
                                 RESET
                             </button>
@@ -214,9 +194,9 @@ export default function TimerModal({ isOpen, onClose }) {
                                     key={s}
                                     onClick={() => setTime(Math.floor(s / 60), s % 60)}
                                     style={{
-                                        background: "#333",
-                                        border: "1px solid #555",
-                                        color: "#ccc",
+                                        background: "transparent",
+                                        border: "1px solid var(--glass-border)",
+                                        color: "var(--text-dim)",
                                         fontSize: "0.8rem",
                                         padding: "5px 10px",
                                         borderRadius: "4px",

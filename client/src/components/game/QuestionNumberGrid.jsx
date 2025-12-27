@@ -12,7 +12,8 @@ export default function QuestionNumberGrid() {
     loadQuestion,
     animationPhase,
     setAnimationPhase,
-    setRevealQuestion
+    setRevealQuestion,
+    refreshState
   } = useGame();
 
   const gridRef = useRef(null);
@@ -180,29 +181,54 @@ export default function QuestionNumberGrid() {
   }, [animationPhase, bidState.questionId]);
 
   return (
-    <div className="question-grid" ref={gridRef}>
-      {questions.map(q => {
-        const result = questionResults[q.id];
-        const isSelected = q.id === (bidState && bidState.questionId);
+    <div style={{ padding: '0 5px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '10px', marginTop: '30px' }}>
+        <button
+          onClick={(e) => { e.stopPropagation(); refreshState(); }}
+          style={{
+            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(124, 58, 237, 0.05))',
+            border: '1px solid var(--purple-main)',
+            color: 'var(--purple-bright)',
+            cursor: 'pointer',
+            fontSize: '0.75rem',
+            padding: '6px 16px',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontWeight: '600',
+            letterSpacing: '1px',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+          }}
+          title="Refresh Questions"
+        >
+          ↻ SYNC GRID
+        </button>
+      </div>
+      <div className="question-grid" ref={gridRef}>
+        {questions.map(q => {
+          const result = questionResults[q.id];
+          const isSelected = q.id === (bidState && bidState.questionId);
 
-        return (
-          <button
-            key={q.id}
-            ref={el => buttonRefs.current[q.id] = el}
-            className={`question-number
-                ${result === "correct" ? "correct" : ""}
-                ${result === "wrong" ? "wrong" : ""}
-                ${result === "swapped" ? "swapped" : ""}
-                ${result ? "locked-state" : ""}
-                ${isSelected ? "selected-active" : ""} 
-              `}
-            disabled={!!result || animationPhase !== 'idle'}
-            onClick={() => handleClick(q.id)}
-          >
-            {q.id}
-          </button>
-        );
-      })}
+          return (
+            <button
+              key={q.id}
+              ref={el => buttonRefs.current[q.id] = el}
+              className={`question-number
+                  ${result === "correct" ? "correct" : ""}
+                  ${result === "wrong" ? "wrong" : ""}
+                  ${result === "swapped" ? "swapped" : ""}
+                  ${result ? "locked-state" : ""}
+                  ${isSelected ? "selected-active" : ""} 
+                `}
+              disabled={!!result || animationPhase !== 'idle'}
+              onClick={() => handleClick(q.id)}
+            >
+              {q.id}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

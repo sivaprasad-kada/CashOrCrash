@@ -26,7 +26,7 @@ export default function FeedbackOverlay() {
 
         if (result === "correct") {
             // SUCCESS ANIMATION
-            overlay.style.background = "rgba(34, 197, 94, 0.9)";
+            overlay.style.background = "rgba(46, 204, 113, 0.9)"; // var(--success)
 
             // Text Slam
             gsap.fromTo(text,
@@ -37,7 +37,7 @@ export default function FeedbackOverlay() {
             // Confetti / Particles (Simulated with simple dom elements if complex, 
             // but for now just text bounce and bg pulse)
             gsap.to(overlay, {
-                background: "rgba(34, 197, 94, 0.6)",
+                background: "rgba(46, 204, 113, 0.6)",
                 repeat: 3,
                 yoyo: true,
                 duration: 0.2
@@ -45,7 +45,7 @@ export default function FeedbackOverlay() {
 
         } else if (result === "wrong") {
             // FAIL ANIMATION
-            overlay.style.background = "rgba(239, 68, 68, 0.9)";
+            overlay.style.background = "rgba(239, 68, 68, 0.9)"; // var(--danger)
 
             // Screen Shake
             gsap.fromTo(overlay,
