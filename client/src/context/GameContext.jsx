@@ -39,63 +39,81 @@ export function GameProvider({ children }) {
   const [animationPhase, setAnimationPhase] = useState('idle');
 
   // [NEW] Game Status & Admin
+  // [NEW] Game Status & Admin
   const [isGameActive, setIsGameActive] = useState(false);
-  const [adminBalance, setAdminBalance] = useState(0);
+  const [adminBalance, setAdminBalance] = useState(null); // Init as null for loading state
   const [adminName, setAdminName] = useState("");
+  const [user, setUser] = useState(null); // [NEW] Full User Object (id, role, etc)
 
   // [NEW] Persist API
   const STATE_API = "http://localhost:5000/api/state";
   const ADMIN_API = "http://localhost:5000/api/admin";
 
-  // [NEW] Admin Auth State
+  // [NEW] Axios Config for Cookies
+  axios.defaults.withCredentials = true;
+
+  // [UPDATED] Auth State
   const [hasActiveAdmin, setHasActiveAdmin] = useState(false);
   const [isAdminLoading, setIsAdminLoading] = useState(true);
-  const [adminRoomId, setAdminRoomId] = useState(localStorage.getItem("adminRoomId") || null);
+  const [adminRoomId, setAdminRoomId] = useState(null); // No local storage fallback, strictly from session
 
-  // Check Admin Status on Mount
+  // [NEW] Scoped 50-50 State for Current Question
+  // Reset this whenever question changes
+  const [localFiftyFifty, setLocalFiftyFifty] = useState(false);
+
+  // Check Admin Session on Mount
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkSession = async () => {
       try {
-        const res = await axios.get(`${ADMIN_API}/status`);
-        setHasActiveAdmin(res.data.hasActiveAdmin);
+        const res = await axios.get(`${ADMIN_API}/me`);
+        if (res.data.success && res.data.admin) {
+          setHasActiveAdmin(true);
+          setUser(res.data.admin); // [NEW] Set User
+          // Support both Root (activeRoomId) and Admin (roomId)
+          // Also handle if roomId is an object (populated) or string
+          const rawRoom = res.data.admin.activeRoomId || res.data.admin.roomId;
+          const roomIdString = rawRoom?._id || rawRoom;
+
+          setAdminRoomId(roomIdString);
+          setAdminName(res.data.admin.username);
+          setAdminBalance(res.data.admin.balance); // Initial balance logic
+        } else {
+          setHasActiveAdmin(false);
+          setUser(null);
+          setAdminRoomId(null);
+          setAdminName("");
+        }
       } catch (error) {
-        console.error("Failed to check admin status", error);
+        console.error("Session check failed", error);
+        setHasActiveAdmin(false);
+        setUser(null);
       } finally {
         setIsAdminLoading(false);
       }
     };
-    checkAdminStatus();
-
-    // Optional: Poll every 30s to keep sync if multiple tabs
-    const interval = setInterval(checkAdminStatus, 30000);
-    return () => clearInterval(interval);
+    checkSession();
   }, []);
 
   const loginAdmin = async (credentials) => {
     const res = await axios.post(`${ADMIN_API}/login`, credentials);
     if (res.data.success) {
       setHasActiveAdmin(true);
-      if (res.data.user.roomId) {
-        setAdminRoomId(res.data.user.roomId);
-        localStorage.setItem("adminRoomId", res.data.user.roomId);
-      }
-      if (res.data.user.username) {
-        localStorage.setItem("adminUsername", res.data.user.username);
-        setAdminName(res.data.user.username);
-      }
+      setUser(res.data.user); // [NEW] Set User
+      // Prioritize the explicitly returned roomId from token payload
+      setAdminRoomId(res.data.roomId || res.data.user.roomId);
+      setAdminName(res.data.user.username);
       return res.data;
     }
     throw new Error("Login failed");
   };
 
-  const logoutAdmin = async (username) => {
+  const logoutAdmin = async () => {
     try {
-      const userToLogout = username || localStorage.getItem("adminUsername");
-      await axios.post(`${ADMIN_API}/logout`, { username: userToLogout });
+      await axios.post(`${ADMIN_API}/logout`);
       setHasActiveAdmin(false);
+      setUser(null);
       setAdminRoomId(null);
-      localStorage.removeItem("adminRoomId");
-      localStorage.removeItem("adminUsername");
+      setAdminName("");
     } catch (err) { console.error("Logout error", err); }
   };
 
@@ -129,25 +147,15 @@ export function GameProvider({ children }) {
 
 
       // Fetch Admin Balance
-      // Prioritize the currently logged-in admin if available
+      // Fetch Admin Balance
+      // STRICTLY use the authenticated session.
       try {
-        const adminsRes = await axios.get(ADMIN_API);
-        const loggedInUsername = localStorage.getItem("adminUsername");
-
-        let targetAdmin = null;
-
-        if (loggedInUsername) {
-          targetAdmin = adminsRes.data.find(a => a.username === loggedInUsername);
-        }
-
-        // Fallback to whoever started the game if current user not found or not logged in
-        if (!targetAdmin && serverState.startedByAdminId) {
-          targetAdmin = adminsRes.data.find(a => a._id === serverState.startedByAdminId);
-        }
-
-        if (targetAdmin) {
-          setAdminBalance(targetAdmin.balance);
-          setAdminName(targetAdmin.username);
+        const meRes = await axios.get(`${ADMIN_API}/me`);
+        if (meRes.data.success && meRes.data.admin) {
+          setAdminBalance(meRes.data.admin.balance);
+          setAdminName(meRes.data.admin.username);
+          // Also ensure room ID matches if we are in admin mode?
+          // setAdminRoomId(...) - usually consistent.
         }
       } catch (e) { console.warn("Could not fetch admin details"); }
 
@@ -197,8 +205,37 @@ export function GameProvider({ children }) {
   }, []);
 
   const refreshAdminBalance = async () => {
-    // Helper to re-fetch
-    // ...
+    try {
+      if (adminRoomId) {
+        // [NEW] Use scoped endpoint if we know the room
+        const res = await axios.get(`${ADMIN_API}/room-balance/${adminRoomId}`);
+        if (res.data.success) {
+          setAdminBalance(res.data.balance);
+          // Optionally update name if needed, but balance is key
+        }
+      } else {
+        // Fallback to Session
+        const meRes = await axios.get(`${ADMIN_API}/me`);
+        if (meRes.data.success && meRes.data.admin) {
+          setAdminBalance(meRes.data.admin.balance);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to refresh admin balance");
+    }
+  };
+
+  const refreshTeamBalance = async (teamId) => {
+    try {
+      if (!teamId) return;
+      // Add timestamp to prevent browser caching
+      const res = await axios.get(`${TEAM_API}/${teamId}?t=${Date.now()}`);
+      if (res.data) {
+        setTeams(prev => prev.map(t => t._id === teamId ? res.data : t));
+      }
+    } catch (err) {
+      console.error("Failed to refresh team balance", err);
+    }
   };
 
   // 2. Wrap SetActiveTeam with Persistence
@@ -208,6 +245,7 @@ export function GameProvider({ children }) {
   };
 
   const loadQuestion = async (questionId, persist = true) => {
+    setLocalFiftyFifty(false); // [NEW] Reset 50-50
     const currentRoomId = adminRoomId || activeTeam?.roomId;
     const roomQuery = currentRoomId ? `?roomId=${currentRoomId}` : "";
 
@@ -220,6 +258,7 @@ export function GameProvider({ children }) {
   };
 
   const clearCurrentQuestion = () => {
+    setLocalFiftyFifty(false); // [NEW] Reset 50-50
     setSelectedQuestion(null);
     setBidState({ questionId: null, amount: null, confirmed: false });
     const currentRoomId = adminRoomId || activeTeam?.roomId;
@@ -298,12 +337,17 @@ export function GameProvider({ children }) {
         adminBalance,
         adminName,
         setAdminBalance,
+        user, // [NEW]
         hasActiveAdmin,
         isAdminLoading,
         loginAdmin,
         logoutAdmin,
         adminRoomId,
-        refreshState // NEW EXPORT
+        refreshState,
+        refreshAdminBalance, // Export
+        refreshTeamBalance, // [NEW]
+        localFiftyFifty,
+        setLocalFiftyFifty
       }}
     >
       {children}

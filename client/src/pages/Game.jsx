@@ -1,5 +1,5 @@
 import "../styles/game.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { useSocket } from "../context/SocketContext";
@@ -9,13 +9,17 @@ import QuestionBoard from "../components/game/QuestionBoard";
 import QuestionOverlay from "../components/game/QuestionOverlay";
 import BidPanel from "../components/game/BidPanel";
 import FeedbackOverlay from "../components/game/FeedbackOverlay";
+import TimerModal from "../components/game/TimerModal";
 
 export default function Game() {
   const navigate = useNavigate();
   const {
     isGameActive, adminBalance, adminName, setTeams, setAdminBalance, activeTeam,
-    hasActiveAdmin, isAdminLoading, logoutAdmin, setQuestionResults, adminRoomId
+    hasActiveAdmin, isAdminLoading, logoutAdmin, setQuestionResults, adminRoomId,
+    refreshAdminBalance
   } = useGame();
+
+  const [showTimer, setShowTimer] = useState(false);
   const socket = useSocket();
 
   // [NEW] Route Protection
@@ -26,36 +30,8 @@ export default function Game() {
   }, [isAdminLoading, hasActiveAdmin, navigate]);
 
   // Socket Listeners for Real-time Updates
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on("TEAM_UPDATE", (updatedTeam) => {
-      setTeams(prev => prev.map(t => t._id === updatedTeam._id ? updatedTeam : t));
-    });
-
-    socket.on("ADMIN_BALANCE_UPDATE", ({ balance, adminId }) => {
-      setAdminBalance(balance);
-    });
-
-    socket.on("QUESTION_LOCKED", ({ roomId, questionId, result }) => {
-      const currentRoomId = adminRoomId || activeTeam?.roomId;
-
-      // Strict Room Check
-      if (currentRoomId && String(currentRoomId) === String(roomId)) {
-        console.log(`[GAME] Locking Question ${questionId} for Room ${roomId}`);
-        setQuestionResults(prev => ({
-          ...prev,
-          [questionId]: result || "locked"
-        }));
-      }
-    });
-
-    return () => {
-      socket.off("TEAM_UPDATE");
-      socket.off("ADMIN_BALANCE_UPDATE");
-      socket.off("QUESTION_LOCKED");
-    };
-  }, [socket, setTeams, setAdminBalance, setQuestionResults, adminRoomId, activeTeam]);
+  // Socket Listeners are now handled globally in SocketContext.jsx
+  // to support updates on all pages (SugarCandy, etc.)
 
   if (isAdminLoading) {
     return (
@@ -90,7 +66,56 @@ export default function Game() {
         borderBottom: '1px solid #555', fontSize: '0.9rem', fontWeight: 'bold'
       }}>
         <span>👑 HOST: {adminName || "ROOT"}</span>
-        <span style={{ color: '#2ecc71' }}>💰 BANK: ₹ {adminBalance?.toLocaleString()}</span>
+        <span style={{ color: '#2ecc71', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          💰 BANK: {adminBalance === null ? '...' : `₹ ${adminBalance.toLocaleString()}`}
+          <button
+            onClick={refreshAdminBalance}
+            title="Refresh Balance"
+            style={{
+              background: 'transparent', border: '1px solid #2ecc71', color: '#2ecc71',
+              borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+          >
+            ↻
+          </button>
+        </span>
+
+        <button
+          onClick={() => setShowTimer(true)}
+          style={{
+            background: 'transparent',
+            border: '1px solid #f1c40f',
+            color: '#f1c40f',
+            padding: '5px 15px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px'
+          }}
+        >
+          ⏱ TIMER
+        </button>
+
+        <button
+          onClick={() => navigate("/admin")}
+          style={{
+            background: '#8e44ad',
+            color: 'white',
+            border: 'none',
+            padding: '5px 15px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            fontWeight: 'bold'
+          }}
+        >
+          ⚙️ ADMIN PANEL
+        </button>
+
         <button
           onClick={() => {
             logoutAdmin();
@@ -115,6 +140,7 @@ export default function Game() {
       <QuestionOverlay />
       <BidPanel />
       <FeedbackOverlay />
+      <TimerModal isOpen={showTimer} onClose={() => setShowTimer(false)} />
 
       {/* FLOATING LEADERBOARD BUTTON */}
       <button

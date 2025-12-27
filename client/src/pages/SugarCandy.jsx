@@ -6,7 +6,7 @@ import { useGame } from "../context/GameContext";
 export default function SugarCandy() {
     const { teamId } = useParams();
     const navigate = useNavigate();
-    const { adminBalance, adminName, adminRoomId } = useGame();
+    const { adminBalance, adminName, adminRoomId, refreshAdminBalance } = useGame();
 
     const [team, setTeam] = useState(null);
     const [cards, setCards] = useState([]);
@@ -29,7 +29,12 @@ export default function SugarCandy() {
 
                 setLoading(false);
             } catch (err) {
-                console.error("Failed to load Sugar Candy data");
+                console.error("Failed to load Sugar Candy data", err);
+                // Extract error message
+                const msg = err.response?.data?.error || err.message;
+                setTeam(null); // Ensure null to trigger error view
+                console.log(`Error fetching team ${teamId}: ${msg}`);
+                alert(`Error loading data: ${msg}`); // Temporary alert for visibility
                 setLoading(false);
             }
         };
@@ -52,21 +57,23 @@ export default function SugarCandy() {
         try {
 
             // Identify Admin ID
-            // We need the ID of the currently operating admin to deduct balance
-            const currentUsername = adminName || localStorage.getItem("adminUsername");
-            if (!currentUsername) throw new Error("No Admin Session Found");
+            // We NO LONGER check local storage for identity.
+            // We rely on the /apply endpoint to extract ID from the httpOnly cookie.
 
-            const allAdmins = await axios.get("http://localhost:5000/api/admin");
-            const myAdmin = allAdmins.data.find(a => a.username === currentUsername);
-
-            if (!myAdmin) throw new Error("Admin profile not found in database");
+            // Just verifying we have an active session in context is good UI practice though.
+            if (!adminName) {
+                // Try to refresh or warn?
+                // But let's trust the backend to reject if invalid.
+            }
 
             const res = await axios.post("http://localhost:5000/api/sugarcandy/apply", {
                 teamId: team._id,
                 percentage: selectedCard.percentage,
                 answer,
-                adminId: myAdmin._id
+                // adminId: ... NO! Backend extracts from token.
             });
+
+
 
             if (res.data.success) {
                 setTeam(res.data.team);
@@ -98,14 +105,40 @@ export default function SugarCandy() {
             }}>
                 <div>
                     <h1 style={{ margin: 0, color: '#ff69b4', textShadow: '0 0 10px #ff69b4' }}>{team.name}</h1>
-                    <div style={{ fontSize: '1.5rem', marginTop: '10px' }}>
+                    <div style={{ fontSize: '1.5rem', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         WALLET: <span style={{ color: '#2ecc71' }}>₹ {team.balance.toLocaleString()}</span>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await axios.get(`http://localhost:5000/api/teams/${teamId}?t=${Date.now()}`);
+                                    setTeam(res.data);
+                                } catch (e) { console.error("Refresh failed") }
+                            }}
+                            title="Refresh Team Balance"
+                            style={{
+                                background: 'transparent', border: '1px solid #2ecc71', color: '#2ecc71',
+                                borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}
+                        >
+                            ↻
+                        </button>
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.9rem', color: '#aaa' }}>CANDY CONSUMED: {team.sugarCandyAddCount} / 2</div>
-                    <div style={{ fontSize: '1.2rem', marginTop: '5px' }}>
-                        HOST BANK: <span style={{ color: '#f1c40f' }}>₹ {adminBalance.toLocaleString()}</span>
+                    <div style={{ fontSize: '1.2rem', marginTop: '5px', display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        HOST BANK: <span style={{ color: '#f1c40f' }}>{adminBalance === null ? '...' : `₹ ${adminBalance.toLocaleString()}`}</span>
+                        <button
+                            onClick={refreshAdminBalance}
+                            style={{
+                                background: 'transparent', border: '1px solid #f1c40f', color: '#f1c40f',
+                                borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}
+                        >
+                            ↻
+                        </button>
                     </div>
                 </div>
             </div>

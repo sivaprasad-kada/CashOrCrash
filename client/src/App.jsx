@@ -7,6 +7,7 @@ import Game from "./pages/Game";
 import Leaderboard from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
 import SugarCandy from "./pages/SugarCandy";
+import AdminLogin from "./pages/AdminLogin";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/sugar-candy/:teamId" element={<SugarCandy />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
         </Routes>
       </SocketProvider>
     </GameProvider>

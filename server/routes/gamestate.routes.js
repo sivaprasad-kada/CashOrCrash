@@ -1,12 +1,31 @@
 import express from "express";
 import GameState from "../models/GameState.model.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-// GET current state (Create if missing)
+const getAdminRoomId = (req) => {
+    const token = req.cookies.token; // Changed to 'token' to match adminAuth/controller
+    if (!token) return null;
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
+        return decoded.roomId;
+    } catch (e) {
+        return null;
+    }
+};
+
+// GET current state
 router.get("/", async (req, res) => {
     try {
-        const { roomId } = req.query;
+        let { roomId } = req.query;
+
+        // SECURITY: If Admin is logged in, forced to their room
+        const adminRoomId = getAdminRoomId(req);
+        if (adminRoomId) {
+            roomId = adminRoomId;
+        }
+
         let query = {};
         if (roomId) query.roomId = roomId;
 
@@ -26,18 +45,25 @@ router.get("/", async (req, res) => {
 // UPDATE state
 router.put("/", async (req, res) => {
     try {
-        const { roomId } = req.body; // Expect roomId in body for updates
-        // If roomId is in query params? Frontend might send it there or body.
-        // Let's check body first.
+        let { roomId } = req.body;
+
+        // SECURITY: If Admin, force their room for updates
+        const adminRoomId = getAdminRoomId(req);
+        if (adminRoomId) {
+            roomId = adminRoomId;
+        } else {
+            // If not admin, maybe check body or query (for Teams? Teams ideally shouldn't control GameState)
+            // But for now, preserve existing behavior for non-admins if any
+            if (!roomId && req.query.roomId) roomId = req.query.roomId;
+        }
 
         let filters = {};
         if (roomId) filters.roomId = roomId;
-        else if (req.query.roomId) filters.roomId = req.query.roomId;
-
-        // Safety: If no roomId, we might update the global one or arbitrary one. 
-        // For now, allow it but prefer scoped.
 
         const update = { ...req.body, updatedAt: Date.now() };
+        // Prevent accidental roomId overwrite
+        delete update.roomId;
+
         const options = { new: true, upsert: true };
 
         const state = await GameState.findOneAndUpdate(filters, update, options);

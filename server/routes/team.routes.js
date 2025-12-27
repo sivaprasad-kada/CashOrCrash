@@ -25,10 +25,25 @@ router.get("/leaderboard", async (req, res) => {
 /* GET ALL TEAMS (GAME) */
 /* ============================= */
 router.get("/", async (req, res) => {
-  const { roomId } = req.query;
-  const filter = roomId ? { roomId } : {};
-  const teams = await Team.find(filter, { name: 1, balance: 1, lifelines: 1, unityTokens: 1, sugarCandy: 1 }).populate("roomId", "name");
-  res.json(teams);
+  try {
+    const { roomId } = req.query;
+    const filter = {};
+
+    // Validate roomId is a valid ObjectId before using it
+    if (roomId && roomId.match(/^[0-9a-fA-F]{24}$/)) {
+      filter.roomId = roomId;
+    } else if (roomId) {
+      // If roomId is provided but invalid (e.g. "undefined", "[object Object]"), return empty or handle error
+      // Returning empty to avoid crash
+      return res.json([]);
+    }
+
+    const teams = await Team.find(filter, { name: 1, balance: 1, lifelines: 1, unityTokens: 1, sugarCandy: 1 }).populate("roomId", "name");
+    res.json(teams);
+  } catch (err) {
+    console.error("Get Teams Error:", err);
+    res.status(500).json({ error: "Failed to fetch teams" });
+  }
 });
 
 /* ============================= */

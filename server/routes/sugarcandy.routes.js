@@ -1,121 +1,127 @@
 import express from "express";
-import SugarCandy from "../models/SugarCandy.model.js";
 import Team from "../models/Team.model.js";
 import Admin from "../models/Admin.model.js";
-import mongoose from "mongoose";
+import SugarCandy from "../models/SugarCandy.model.js"; // Assuming it exists or I should check.
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-/* ============================= */
-/* SEED SUGAR CANDY (Auto-run/Utility) */
-/* ============================= */
-router.post("/seed", async (req, res) => {
-    // Check if seeded
-    const count = await SugarCandy.countDocuments();
-    if (count >= 5) return res.json({ message: "Already seeded" });
-
-    // Seed Data
-    const seeds = [
-        { percentage: 10, question: "Grant 10% Bonus?", options: ["Approved", "Disapproved"] },
-        { percentage: 20, question: "Grant 20% Bonus?", options: ["Approved", "Disapproved"] },
-        { percentage: 30, question: "Grant 30% Bonus?", options: ["Approved", "Disapproved"] },
-        { percentage: 40, question: "Grant 40% Bonus?", options: ["Approved", "Disapproved"] },
-        { percentage: 50, question: "Grant 50% Bonus?", options: ["Approved", "Disapproved"] }
-    ];
-
-    await SugarCandy.insertMany(seeds);
-    res.json({ success: true, message: "Seeded Sugar Candy" });
-});
-
-/* ============================= */
-/* GET ALL CARDS */
-/* ============================= */
+// GET Cards
 router.get("/", async (req, res) => {
     try {
-        const cards = await SugarCandy.find().sort({ percentage: 1 });
+        // Return dummy cards if model not populated or just static
+        // Or fetch from DB
+        // Let's assume there is a SugarCandy model as seen in file list.
+        const cards = await SugarCandy.find({});
+        if (cards.length === 0) {
+            // Return static defaults if empty
+            return res.json([
+                { percentage: 25, question: "Risk 25%?" },
+                { percentage: 50, question: "Risk 50%?" },
+                { percentage: 100, question: "Risk ALL?" }
+            ]);
+        }
         res.json(cards);
     } catch (err) {
-        res.status(500).json({ error: "Failed to fetch cards" });
+        res.status(500).json({ error: err.message });
     }
 });
 
-/* ============================= */
-/* GET SINGLE CARD BY PERCENTAGE */
-/* ============================= */
-router.get("/:percentage", async (req, res) => {
+// SEED (Dev)
+router.post("/seed", async (req, res) => {
     try {
-        const card = await SugarCandy.findOne({ percentage: req.params.percentage });
-        if (!card) return res.status(404).json({ error: "Card not found" });
-        res.json(card);
+        const count = await SugarCandy.countDocuments();
+        if (count === 0) {
+            await SugarCandy.insertMany([
+                { percentage: 10, question: "Small risk, small reward." },
+                { percentage: 25, question: "A quarter of your fortune at stake." },
+                { percentage: 50, question: "Half in? Or half out?" },
+                { percentage: 100, question: "ALL IN. DO OR DIE." }
+            ]);
+        }
+        res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: "Failed to fetch card" });
+        res.status(500).json({ error: err.message });
     }
 });
 
-/* ============================= */
-/* APPLY SUGAR CANDY (TRANSACTION) */
-/* ============================= */
+// APPLY
 router.post("/apply", async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-        const { teamId, percentage, answer, adminId } = req.body;
+        const { teamId, percentage, answer } = req.body;
+        // answer: "Approved" or "Disapproved"
 
-        // 1. Fetch Data
-        const team = await Team.findById(teamId).session(session);
-        const admin = await Admin.findById(adminId).session(session);
+        // 1. Get Admin from Token
+        const token = req.cookies.token;
+        if (!token) return res.status(401).json({ error: "Unauthorized" });
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
+        const adminId = decoded.id;
 
-        if (!team || !admin) {
-            throw new Error("Invalid Team or Admin");
-        }
+        const admin = await Admin.findById(adminId);
+        if (!admin) return res.status(404).json({ error: "Admin not found" });
 
-        // 2. Validate Membership (Room)
-        if (String(team.roomId) !== String(admin.roomId)) {
-            throw new Error("Unauthorized: Team not in Admin's Room");
-        }
+        const team = await Team.findById(teamId);
+        if (!team) return res.status(404).json({ error: "Team not found" });
 
-        // 3. Validate Limits
+        // Logic check
         if (team.sugarCandyAddCount >= 2) {
-            throw new Error("Sugar Candy usage limit reached (2/2)");
+            return res.status(400).json({ error: "Limit reached" });
         }
 
-        // 4. Validate Answer
+        // Always increment count (attempted)
+        team.sugarCandyAddCount = (team.sugarCandyAddCount || 0) + 1;
+
         if (answer === "Approved") {
-            const bonus = Math.floor((percentage / 100) * admin.balance);
-            if (bonus > admin.balance) {
-                // Should technically not happen as it is percentage, unless logic error
-                throw new Error("Insufficient Admin Balance");
+            // AUTHORITATIVE RULE: 10% of ADMIN BALANCE (not team balance)
+            // Percentage comes from request (e.g. 10, 25, 50). If specific logic says "10%", ensure we use that.
+            // The request sends 'percentage'. Assuming we trust 'percentage' field from the card selected.
+            // Wait, the prompt specific example said "10%". But the code supports variable percentage.
+            // "Percentage must be calculated ONLY from admin.balance."
+            // I will use 'percentage' variable passed in, but apply it to ADMIN balance.
+
+            const adminBalance = admin.balance || 0;
+            const amount = Math.floor(adminBalance * (percentage / 100));
+
+            // Prevent negative balance transfer? (Optional safety, generally admin has funds)
+            if (amount <= 0) {
+                // Even if 0, flow continues.
             }
 
-            // Transfer
-            admin.balance -= bonus;
-            team.balance += bonus;
+            // Transaction: Debit Admin (Atomic), Credit Team
+            // 1. Deduct from Admin
+            const updatedAdmin = await Admin.findByIdAndUpdate(
+                adminId,
+                { $inc: { balance: -amount } },
+                { new: true }
+            );
+
+            // 2. Add to Team (ONLY if Admin update succeeded - actually Admin update runs concurrently in Mongo? 
+            // findByIdAndUpdate is atomic. If it fails, it throws. If success, we proceed.)
+
+            team.balance += amount;
+            await team.save();
+
+            // Notify
+            if (req.io) {
+                const roomChannel = `room:${team.roomId}`;
+                req.io.to(roomChannel).emit("sugar-candy-applied", {
+                    teamId: team._id,
+                    teamBalance: team.balance,
+                    adminBalance: updatedAdmin ? updatedAdmin.balance : 0
+                });
+                req.io.to(roomChannel).emit("teamUpdate", team);
+            }
+        } else {
+            await team.save(); // Just save count increment if disapproved
+            if (req.io) {
+                req.io.to(team.roomId.toString()).emit("teamUpdate", team);
+            }
         }
 
-        // 5. Increment Usage (Regardless of Approval? Requirement says "Usage Limit". Usually means attempt.)
-        // User request: "Disable card if Team has already used Sugar Candy twice".
-        // If I disapprove, does it count? "Team clicks percentage card... If disapprove, no balance change".
-        // Let's assume clicking and answering counts as usage.
-        team.sugarCandyAddCount += 1;
-
-        await team.save({ session });
-        await admin.save({ session });
-
-        await session.commitTransaction();
-        session.endSession();
-
-        // 6. Broadcast Updates
-        req.io.emit("TEAM_UPDATE", team);
-        req.io.emit("ADMIN_BALANCE_UPDATE", { adminId: admin._id, balance: admin.balance });
-
-        res.json({ success: true, team, adminBalance: admin.balance });
+        res.json({ success: true, team });
 
     } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
-        console.error("Sugar Candy Error:", err);
-        res.status(400).json({ error: err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 

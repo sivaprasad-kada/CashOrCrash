@@ -11,30 +11,42 @@ const ROOM_API = "http://localhost:5000/api/rooms";
 
 export default function Admin() {
     const navigate = useNavigate();
-    const { loginAdmin, logoutAdmin, refreshState } = useGame();
-
-    // Auth State
-    const [user, setUser] = useState(null);
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [selectedRoomId, setSelectedRoomId] = useState("");
+    const { user, logoutAdmin, refreshState, isAdminLoading } = useGame();
 
     // Data State
     const [teams, setTeams] = useState([]);
     const [rooms, setRooms] = useState([]);
-    const [newTeam, setNewTeam] = useState({ name: "", balance: 10000 });
     const [admins, setAdmins] = useState([]);
-    const [newAdmin, setNewAdmin] = useState({ username: "", password: "", role: "admin" });
+
+    // Forms
+    const [newTeam, setNewTeam] = useState({ name: "", balance: 10000 });
+    const [newAdmin, setNewAdmin] = useState({ username: "", password: "", role: "admin", roomId: "" });
+    const [newRoomName, setNewRoomName] = useState("");
+
+    // Lifeline Modal State
+    const [selectedTeamForLifeline, setSelectedTeamForLifeline] = useState(null);
+    const [lifelineModalOpen, setLifelineModalOpen] = useState(false);
+
+    // Root Room Control
+    const [activeRoomId, setActiveRoomId] = useState(""); // For Dropdown
 
     const containerRef = useRef(null);
 
-    // --- FETCH ROOMS (For Login) ---
+    // --- CHECK SESSION & REDIRECT ---
+    useEffect(() => {
+        if (!isAdminLoading) {
+            if (!user) {
+                navigate("/admin/login");
+            }
+        }
+    }, [user, isAdminLoading, navigate]);
+
+    // --- FETCH ROOMS ON MOUNT ---
     useEffect(() => {
         const fetchRooms = async () => {
             try {
                 const res = await axios.get(ROOM_API);
                 setRooms(res.data);
-                if (res.data.length > 0) setSelectedRoomId(res.data[0]._id);
             } catch (err) { console.error("Failed to fetch rooms"); }
         };
         fetchRooms();
@@ -42,13 +54,21 @@ export default function Admin() {
 
     // --- INITIAL DATA FETCH ---
     const fetchData = async () => {
+        if (!user) return;
         try {
-            // Filter teams by the Admin's selected room
-            const roomQuery = user?.roomId ? `?roomId=${user.roomId}` : "";
-            const teamsRes = await axios.get(`${API_URL}${roomQuery}`);
-            setTeams(teamsRes.data);
+            // 2. Fetch Teams (Scoped to current room)
+            // If Root, use activeRoomId from user session if available
+            // Note: user object is updated from getMe (populated roomId)
+            const currentRoomId = user?.activeRoomId || (user?.roomId?._id ?? user?.roomId);
 
-            // If root, fetch admins too
+            if (currentRoomId) {
+                const teamsRes = await axios.get(`${API_URL}?roomId=${currentRoomId}`);
+                setTeams(teamsRes.data);
+            } else {
+                setTeams([]); // No room selected/assigned
+            }
+
+            // 3. Fetch Admins (Root Only)
             if (user?.role === "root") {
                 const adminsRes = await axios.get(ADMIN_API);
                 setAdmins(adminsRes.data);
@@ -58,64 +78,63 @@ export default function Admin() {
         }
     };
 
+    // Check Session on Mount (Removed - handled by GameContext)
+
     useEffect(() => {
         if (user) {
             fetchData();
             gsap.fromTo(containerRef.current, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8 });
         }
-    }, [user]);
+    }, [user?.roomId, user?.activeRoomId, user?.role, user]); // Re-fetch if room changes
 
-    // --- AUTH ACTIONS ---
-    const handleLogin = async (e) => {
-        e.preventDefault();
+
+    // --- ROOT: ENTER ROOM ---
+    const enterRoom = async () => {
+        if (!activeRoomId) return alert("Select a room");
         try {
-            if (!selectedRoomId) {
-                alert("Please select a room.");
-                return;
-            }
-            const userData = await loginAdmin({ username, password, roomId: selectedRoomId });
-            if (userData.success) {
-                setUser(userData.user);
-            }
+            await axios.post(`${ADMIN_API}/enter-room`, { roomId: activeRoomId });
+            // Refresh User State to get new activeRoomId
+            // GameContext should handle this if we trigger a refresh or manual update
+            // Ideally call checkSession or similar.
+            // For now, reload window or rely on response.
+            // Actually, we can just call window.location.reload() to refresh everything cleanly
+            window.location.reload();
         } catch (err) {
-            alert("Invalid Creds");
+            alert("Failed to switch room");
         }
     };
 
     const handleLogout = async () => {
-        if (user) await logoutAdmin(user.username);
-        setUser(null);
-        setPassword("");
+        await logoutAdmin();
+        setTeams([]);
+        navigate("/admin/login");
     };
 
-    // --- TEAM ACTIONS ---
+    if (isAdminLoading || !user) return <div style={{ color: 'white', padding: 50 }}>Loading Admin Portal...</div>;
+
+    // --- ASSIGN TEAM ROOM (ROOT) ---
+    const assignRoom = async (teamId, newRoomId) => {
+        if (!newRoomId) return;
+        try {
+            await axios.post(`${ADMIN_API}/assign-team-room`, { teamId, roomId: newRoomId });
+            fetchData(); // specific team will likely vanish from list if filtered by room
+        } catch (err) {
+            alert("Failed to assign room");
+        }
+    };
+
+    // --- RENDER DASHBOARD (ROOT ONLY ESSENTIALLY) ---
     const addTeam = async (e) => {
         e.preventDefault();
-        if (!newTeam.name) return;
+        const currentRoomId = user?.activeRoomId || (user?.roomId?._id ?? user?.roomId);
+        if (!newTeam.name || !currentRoomId) return alert("No active room to add team to.");
+
         try {
-            // Create team, ideally backend assigns default or we don't send roomId yet?
-            // Actually new model requires roomId. We should send the admin's room.
-            const payload = { ...newTeam, roomId: user.roomId }; // Assign to current room implicitly? 
-            // Or backend defaults? Model requires it. 
-            // Let's rely on backend to not fail, or better, passing it explicitly if we changed create endpoint.
-            // Wait, create endpoint doesn't take roomId yet.
-            // Let's just create it and then assign? No, validation will fail.
-            // I need to update TEAM_API post as well or modify it here.
-            // For now, let's assume I need to pass roomId in body if I updated the route. 
-            // (I didn't update POST /teams to take roomId, but Mongoose will error).
-            // NOTE: I missed updating POST /teams. I will assume I can fix that in next step or now.
-            // For now, I'll send it, and if it fails I'll fix the backend.
-            /* 
-               Actually, I should fix the backend POST /teams too. 
-               But assuming I will, let's send it.
-            */
-            // Quick fix: user.roomId is available. 
-            await axios.post(API_URL, { ...newTeam, roomId: user.roomId });
+            await axios.post(API_URL, { ...newTeam, roomId: currentRoomId });
             setNewTeam({ name: "", balance: 10000 });
             fetchData();
         } catch (err) {
-            console.error("Error adding team", err);
-            alert("Failed to create team. Ensure Backend supports roomId in POST.");
+            alert("Failed to create team.");
         }
     };
 
@@ -128,87 +147,101 @@ export default function Admin() {
         try { await axios.put(`${API_URL}/${id}`, { balance: current + amount }); fetchData(); } catch (err) { }
     };
 
-    const assignRoom = async (teamId, roomId) => {
-        try {
-            await axios.post(`${ADMIN_API}/assign-team-room`, { teamId, roomId });
-            fetchData();
-        } catch (err) { alert("Failed to assign room"); }
-    };
-
-    // --- ADMIN ACTIONS (ROOT ONLY) ---
-    const createAdmin = async (e) => {
-        e.preventDefault();
-        try {
-            await axios.post(`${ADMIN_API}/add`, newAdmin);
-            setNewAdmin({ username: "", password: "", role: "admin" });
-            fetchData();
-            alert("Admin Created");
-        } catch (err) { alert("Failed to creating admin"); }
-    };
-
-    // --- GAME ACTIONS ---
-    const handleStartGame = async () => {
-        if (!window.confirm("Start the Game? This will enable gameplay for everyone.")) return;
-        try {
-            await axios.put("http://localhost:5000/api/state", { isGameActive: true, startedByAdminId: user.id, roomId: user.roomId });
-            if (refreshState) await refreshState();
-            alert("Game Started! Lost money will be credited to your account.");
-            navigate("/game");
-        } catch (err) {
-            console.error(err);
-            alert("Failed to start game.");
-        }
-    };
-
     const addResource = async (teamId, type, amount) => {
         try {
             await axios.post(`${ADMIN_API}/update-team-resources`, {
-                teamId, type, amount, adminId: user.id
+                teamId, type, amount, adminId: user._id
             });
             fetchData();
             alert(`Added ${amount} ${type === 'unityTokens' ? 'Token(s)' : 'Candy'}`);
         } catch (err) {
-            alert(err.response?.data?.error || "Failed to add resource");
+            alert(err.response?.data?.error || "Failed");
         }
     };
 
+    const updateLifeline = async (teamId, lifeline, action) => {
+        try {
+            const res = await axios.post(`${ADMIN_API}/update-team-lifeline`, { teamId, lifelineName: lifeline, action });
+            const updatedTeam = res.data;
+
+            // Update teams list immutably
+            setTeams(prevTeams => prevTeams.map(t => t._id === teamId ? updatedTeam : t));
+
+            // Update modal selected team if it matches
+            if (selectedTeamForLifeline && selectedTeamForLifeline._id === teamId) {
+                setSelectedTeamForLifeline(updatedTeam);
+            }
+        } catch (err) {
+            console.error("Update lifeline error", err);
+            alert("Failed to update lifeline");
+        }
+    };
+
+    const openLifelineModal = (team) => {
+        setSelectedTeamForLifeline(team);
+        setLifelineModalOpen(true);
+    };
+
+    const closeLifelineModal = () => {
+        setLifelineModalOpen(false);
+        setSelectedTeamForLifeline(null);
+    };
+
+    // --- ROOT MANAGEMENT ---
+    const createRoom = async (e) => {
+        e.preventDefault();
+        try {
+            await axios.post(ROOM_API, { name: newRoomName });
+            setNewRoomName("");
+            fetchData(); // Refresh room lists
+            alert("Room Created");
+        } catch (err) { alert("Failed"); }
+    };
+
+    const createAdmin = async (e) => {
+        e.preventDefault();
+        try {
+            await axios.post(`${ADMIN_API}/add`, newAdmin);
+            setNewAdmin({ username: "", password: "", role: "admin", roomId: "" });
+            fetchData();
+            alert("Admin Created");
+        } catch (err) {
+            alert(err.response?.data?.error || "Failed");
+        }
+    };
+
+    const handleStartGame = async () => {
+        if (!window.confirm("Start Game for THIS room?")) return;
+        const currentRoomId = user?.activeRoomId || (user?.roomId?._id ?? user?.roomId);
+        if (!currentRoomId) return alert("No active room selected.");
+
+        try {
+            await axios.put("http://localhost:5000/api/state", { isGameActive: true, startedByAdminId: user._id, roomId: currentRoomId });
+            if (refreshState) await refreshState();
+            alert("Game Started!");
+            navigate("/game");
+        } catch (err) {
+            alert("Failed to start game.");
+        }
+    };
+
+    // --- RENDER LOGIN ---
     if (!user) {
         return (
             <div className="admin-login-container">
                 <form onSubmit={handleLogin} className="login-box glass-panel">
                     <h2>ADMIN PORTAL</h2>
-                    <input
-                        type="text"
-                        placeholder="Username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                    />
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-
-                    {/* ROOM SELECTION */}
-                    <div style={{ marginBottom: '15px', width: '100%' }}>
-                        <label style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '5px', display: 'block' }}>SELECT CONTROL ROOM</label>
-                        <select
-                            value={selectedRoomId}
-                            onChange={(e) => setSelectedRoomId(e.target.value)}
-                            style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '5px' }}
-                        >
-                            {rooms.map(r => (
-                                <option key={r._id} value={r._id} style={{ color: 'black' }}>{r.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <button type="submit">ACCESS DATABASE</button>
+                    <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+                    <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <button type="submit">LOGIN</button>
+                    {/* NO ROOM SELECTION HERE */}
                 </form>
             </div>
         );
     }
+
+    const activeId = user?.activeRoomId || (user?.roomId?._id ?? user?.roomId);
+    const currentRoomName = rooms.find(r => r._id === activeId)?.name || "NO ACTIVE ROOM";
 
     return (
         <div className="admin-dashboard" ref={containerRef}>
@@ -216,128 +249,273 @@ export default function Admin() {
                 <div className="header-left">
                     <h1>COMMAND CENTER</h1>
                     <span className="user-badge">
-                        LOGGED IN AS: {user.username.toUpperCase()} ({user.role.toUpperCase()})
+                        {user.username.toUpperCase()} ({user.role.toUpperCase()})
                         <span style={{ marginLeft: '10px', color: '#ffd700' }}>
-                            @ {rooms.find(r => r._id === user.roomId)?.name || "UNKNOWN ROOM"}
+                            @ {currentRoomName}
                         </span>
                     </span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={handleStartGame} className="btn-purple" style={{ padding: '10px 20px', fontWeight: 'bold' }}>START GAME</button>
+                    <button onClick={handleStartGame} className="btn-purple" style={{ padding: '10px 20px' }}>ENTER ARENA</button>
                     <button onClick={handleLogout} className="logout-btn">LOGOUT</button>
                 </div>
             </header>
 
             <div className="admin-content">
 
-                {/* --- LEFT COLUMN: TEAM MANAGEMENT --- */}
+                {/* LEFT COL: TEAMS (Only if Room Seleted) */}
                 <div className="left-col">
-                    <div className="panel add-team-panel">
-                        <h3>ADD NEW SQUAD</h3>
-                        <form onSubmit={addTeam}>
-                            <input
-                                type="text"
-                                placeholder="Team Name"
-                                value={newTeam.name}
-                                onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
-                            />
-                            <input
-                                type="number"
-                                placeholder="Initial Balance"
-                                value={newTeam.balance}
-                                onChange={(e) => setNewTeam({ ...newTeam, balance: Number(e.target.value) })}
-                            />
-                            <button type="submit">DEPLOY TEAM</button>
-                        </form>
-                    </div>
+                    {(user?.activeRoomId || (user?.roomId?._id ?? user?.roomId)) ? (
+                        <>
+                            <div className="panel add-team-panel">
+                                <h3>ADD SQUAD TO: {currentRoomName}</h3>
+                                <form onSubmit={addTeam}>
+                                    <input type="text" placeholder="Team Name" value={newTeam.name} onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })} />
+                                    <input type="number" placeholder="Balance" value={newTeam.balance} onChange={(e) => setNewTeam({ ...newTeam, balance: Number(e.target.value) })} />
+                                    <button type="submit">DEPLOY</button>
+                                </form>
+                            </div>
 
-                    <div className="panel team-list-panel">
-                        <h3>ACTIVE SQUADS ({teams.length})</h3>
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>NAME</th>
-                                        <th>BALANCE</th>
-                                        <th>RESOURCES</th>
-                                        <th>ACTIONS</th>
-                                        <th>MOVE</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {teams.map((team) => (
-                                        <tr key={team._id}>
-                                            <td className="team-name">
-                                                {team.name}
-                                                <div style={{ fontSize: '0.6rem', color: '#666' }}>{team.roomId?.name}</div>
-                                            </td>
-                                            <td className="team-balance">₹ {team.balance.toLocaleString()}</td>
-                                            <td style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                                                <div>🪙 {team.unityTokens || 0}</div>
-                                                <div>🍬 {team.sugarCandy || 0}</div>
-                                            </td>
-                                            <td className="actions">
-                                                <button className="btn-small btn-green" onClick={() => updateBalance(team._id, team.balance, 1000)} title="Add Money">+1k</button>
-                                                <button className="btn-small btn-purple" onClick={() => addResource(team._id, 'unityTokens', 1)} title="Add Unity Token">+T</button>
-                                                <button className="btn-small btn-orange" onClick={() => addResource(team._id, 'sugarCandy', 1)} title="Add Sugar Candy">+C</button>
-                                                <button className="btn-small btn-delete" onClick={() => deleteTeam(team._id)}>🗑️</button>
-                                            </td>
-                                            <td>
-                                                <select
-                                                    style={{ width: '80px', fontSize: '0.7rem' }}
-                                                    onChange={(e) => assignRoom(team._id, e.target.value)}
-                                                    value={team.roomId?._id || team.roomId}
-                                                >
-                                                    {rooms.map(r => <option key={r._id} value={r._id}>{r.name}</option>)}
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            <div className="panel team-list-panel">
+                                <h3>TEAMS IN ROOM ({teams.length})</h3>
+                                <div className="table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>NAME</th>
+
+                                                <th>BALANCE</th>
+                                                <th>LIFELINES</th>
+                                                {user.role === 'root' && <th>ROOM ASSIGNMENT</th>}
+                                                <th>ACTIONS</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {teams.map((team) => (
+                                                <tr key={team._id}>
+                                                    <td>{team.name}</td>
+                                                    <td>₹ {team.balance}</td>
+                                                    <td>
+                                                        <td>
+                                                            <button
+                                                                onClick={() => openLifelineModal(team)}
+                                                                className="btn-purple"
+                                                                style={{ fontSize: '0.8rem', padding: '5px 10px' }}
+                                                            >
+                                                                MANAGE LIFELINES
+                                                            </button>
+                                                        </td>
+                                                    </td>
+                                                    {user.role === 'root' && (
+                                                        <td>
+                                                            <select
+                                                                value={team.roomId?._id || team.roomId}
+                                                                onChange={(e) => assignRoom(team._id, e.target.value)}
+                                                                style={{ padding: '5px', background: '#333', color: 'white', border: '1px solid #555' }}
+                                                            >
+                                                                {rooms.map(r => (
+                                                                    <option key={r._id} value={r._id}>{r.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                    )}
+                                                    <td className="actions">
+                                                        <button className="btn-small btn-green" onClick={() => updateBalance(team._id, team.balance, 1000)}>+1k</button>
+                                                        <button className="btn-small btn-purple" onClick={() => addResource(team._id, 'unityTokens', 1)}>+Token</button>
+                                                        <button className="btn-small btn-pink" style={{ background: '#e91e63' }} onClick={() => addResource(team._id, 'sugarCandy', 1)}>+Candy</button>
+                                                        <button className="btn-small btn-delete" onClick={() => deleteTeam(team._id)}>🗑️</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="panel" style={{ textAlign: 'center', padding: '50px' }}>
+                            <h3>SELECT A ROOM TO MANAGE</h3>
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* --- RIGHT COLUMN: ADMIN MANAGEMENT (ROOT ONLY) --- */}
+                {/* RIGHT COL: ROOT CONTROLS */}
                 {user.role === "root" && (
-                    <div className="right-col panel admin-mgmt-panel">
-                        <h3>ROOT CONTROLS: MANAGE ADMINS</h3>
+                    <div className="right-col">
 
-                        <form onSubmit={createAdmin} className="admin-form">
-                            <input
-                                type="text" placeholder="New Admin Username"
-                                value={newAdmin.username}
-                                onChange={e => setNewAdmin({ ...newAdmin, username: e.target.value })}
-                            />
-                            <input
-                                type="text" placeholder="Password"
-                                value={newAdmin.password}
-                                onChange={e => setNewAdmin({ ...newAdmin, password: e.target.value })}
-                            />
-                            <select
-                                value={newAdmin.role}
-                                onChange={e => setNewAdmin({ ...newAdmin, role: e.target.value })}
+                        {/* 1. ROOM CONTROL */}
+                        <div className="panel room-control-panel" style={{ border: '1px solid gold' }}>
+                            <h3>⚠️ ROOT CONTROL: ACTIVE ROOM</h3>
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                                <select
+                                    value={activeRoomId}
+                                    onChange={(e) => setActiveRoomId(e.target.value)}
+                                    style={{ flex: 1, padding: '10px', background: '#333', color: 'white', border: '1px solid #555' }}
+                                >
+                                    <option value="">-- Select Room --</option>
+                                    {rooms.map(r => <option key={r._id} value={r._id}>{r.name}</option>)}
+                                </select>
+                                <button onClick={enterRoom} className="btn-purple">SWITCH ROOM</button>
+                            </div>
+                            <p style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                                * Switching rooms enables you to manage teams and start games for that specific room.
+                            </p>
+
+                            <hr style={{ borderColor: '#444', margin: '20px 0' }} />
+
+                            <h4>CREATE NEW ROOM</h4>
+                            <form onSubmit={createRoom} style={{ display: 'flex', gap: '10px' }}>
+                                <input type="text" placeholder="Room Name" value={newRoomName} onChange={e => setNewRoomName(e.target.value)} />
+                                <button type="submit" className="btn-green">CREATE</button>
+                            </form>
+                        </div>
+
+                        {/* 2. ADMIN CONTROL */}
+                        <div className="panel admin-mgmt-panel">
+                            <h3>MANAGE ADMINS</h3>
+                            <form onSubmit={createAdmin} className="admin-form">
+                                <input type="text" placeholder="Username" value={newAdmin.username} onChange={e => setNewAdmin({ ...newAdmin, username: e.target.value })} />
+                                <input type="text" placeholder="Password" value={newAdmin.password} onChange={e => setNewAdmin({ ...newAdmin, password: e.target.value })} />
+                                <select value={newAdmin.role} onChange={e => setNewAdmin({ ...newAdmin, role: e.target.value })} style={{ background: '#333', color: 'white', border: '1px solid #555', padding: '10px' }}>
+                                    <option value="admin">Regular Admin</option>
+                                    <option value="root">Root Admin</option>
+                                </select>
+
+                                {/* ROOM SELECT FOR REGULAR ADMIN */}
+                                {newAdmin.role === 'admin' && (
+                                    <select
+                                        value={newAdmin.roomId}
+                                        onChange={e => setNewAdmin({ ...newAdmin, roomId: e.target.value })}
+                                        required
+                                        style={{ background: '#333', color: 'white', border: '1px solid #555', padding: '10px', marginTop: '10px' }}
+                                    >
+                                        <option value="">-- Assign Room (Required) --</option>
+                                        {rooms.map(r => <option key={r._id} value={r._id}>{r.name}</option>)}
+                                    </select>
+                                )}
+
+                                <button type="submit" className="btn-purple" style={{ marginTop: '10px' }}>CREATE ADMIN</button>
+                            </form>
+
+                            <div className="admin-list" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                {admins.map(a => (
+                                    <div key={a._id} className="admin-item" style={{ fontSize: '0.8rem', padding: '5px', borderBottom: '1px solid #333' }}>
+                                        <b>{a.username}</b> ({a.role})
+                                        {a.roomId && <span style={{ color: '#aaa', marginLeft: '5px' }}>{"->"} {a.roomId.name || "Room"}</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                )}
+            </div>
+
+            {/* LIFELINE MANAGEMENT MODAL */}
+            {
+                lifelineModalOpen && selectedTeamForLifeline && (
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                        background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                        zIndex: 1000
+                    }}>
+                        <div style={{
+                            background: '#1a1a2e', padding: '30px', borderRadius: '15px', width: '500px',
+                            border: '2px solid #6c5ce7', color: 'white', textAlign: 'center'
+                        }}>
+                            <h2 style={{ color: '#ffd700', marginBottom: '20px' }}>MANAGE LIFELINES</h2>
+                            <h3 style={{ marginBottom: '30px' }}>TEAM: {selectedTeamForLifeline.name}</h3>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                {/* 50-50 */}
+                                {(() => {
+                                    const l50 = selectedTeamForLifeline.lifelines?.find(l => l.hasOwnProperty("50-50"));
+                                    const isUsed50 = l50 ? l50["50-50"] : false;
+                                    return (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#333', padding: '10px 20px', borderRadius: '8px' }}>
+                                            <span style={{ fontWeight: 'bold' }}>50-50</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                <span style={{ color: isUsed50 ? '#ff4d4d' : '#2ecc71', fontWeight: 'bold' }}>
+                                                    {isUsed50 ? "USED (Disabled)" : "READY (Enabled)"}
+                                                </span>
+                                                <button
+                                                    onClick={() => updateLifeline(selectedTeamForLifeline._id, "50-50", isUsed50 ? "reset" : "remove")}
+                                                    style={{
+                                                        padding: '8px 15px', borderRadius: '5px', border: 'none', cursor: 'pointer',
+                                                        background: isUsed50 ? '#2ecc71' : '#ff4d4d', color: isUsed50 ? 'black' : 'white', fontWeight: 'bold'
+                                                    }}
+                                                >
+                                                    {isUsed50 ? "↺ RE-ENABLE" : "✕ DISABLE"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* QUESTION SWAP */}
+                                {(() => {
+                                    const lSwap = selectedTeamForLifeline.lifelines?.find(l => l.hasOwnProperty("QUESTION-SWAP"));
+                                    const isUsedSwap = lSwap ? lSwap["QUESTION-SWAP"] : false;
+                                    return (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#333', padding: '10px 20px', borderRadius: '8px' }}>
+                                            <span style={{ fontWeight: 'bold' }}>QUESTION SWAP</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                <span style={{ color: isUsedSwap ? '#ff4d4d' : '#2ecc71', fontWeight: 'bold' }}>
+                                                    {isUsedSwap ? "USED (Disabled)" : "READY (Enabled)"}
+                                                </span>
+                                                <button
+                                                    onClick={() => updateLifeline(selectedTeamForLifeline._id, "QUESTION-SWAP", isUsedSwap ? "reset" : "remove")}
+                                                    style={{
+                                                        padding: '8px 15px', borderRadius: '5px', border: 'none', cursor: 'pointer',
+                                                        background: isUsedSwap ? '#2ecc71' : '#ff4d4d', color: isUsedSwap ? 'black' : 'white', fontWeight: 'bold'
+                                                    }}
+                                                >
+                                                    {isUsedSwap ? "↺ RE-ENABLE" : "✕ DISABLE"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* EXTRA TIME */}
+                                {(() => {
+                                    const lTime = selectedTeamForLifeline.lifelines?.find(l => l.hasOwnProperty("EXTRA-TIME"));
+                                    const isUsedTime = lTime ? lTime["EXTRA-TIME"] : false;
+                                    return (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#333', padding: '10px 20px', borderRadius: '8px' }}>
+                                            <span style={{ fontWeight: 'bold' }}>EXTRA TIME</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                <span style={{ color: isUsedTime ? '#ff4d4d' : '#2ecc71', fontWeight: 'bold' }}>
+                                                    {isUsedTime ? "USED (Disabled)" : "READY (Enabled)"}
+                                                </span>
+                                                <button
+                                                    onClick={() => updateLifeline(selectedTeamForLifeline._id, "EXTRA-TIME", isUsedTime ? "reset" : "remove")}
+                                                    style={{
+                                                        padding: '8px 15px', borderRadius: '5px', border: 'none', cursor: 'pointer',
+                                                        background: isUsedTime ? '#2ecc71' : '#ff4d4d', color: isUsedTime ? 'black' : 'white', fontWeight: 'bold'
+                                                    }}
+                                                >
+                                                    {isUsedTime ? "↺ RE-ENABLE" : "✕ DISABLE"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            <button
+                                onClick={closeLifelineModal}
+                                style={{
+                                    marginTop: '30px', padding: '10px 30px', borderRadius: '5px',
+                                    background: '#aaa', border: 'none', color: 'black', fontWeight: 'bold', cursor: 'pointer'
+                                }}
                             >
-                                <option value="admin">Regular Admin</option>
-                                <option value="root">Root Admin</option>
-                            </select>
-                            <button type="submit" className="btn-purple">CREATE ADMIN</button>
-                        </form>
-
-                        <h4>EXISTING ADMINS</h4>
-                        <div className="admin-list">
-                            {admins.map(a => (
-                                <div key={a._id} className="admin-item">
-                                    <span>{a.username} <small>({a.role})</small></span>
-                                    <span className="status-dot">●</span>
-                                </div>
-                            ))}
+                                CLOSE
+                            </button>
                         </div>
                     </div>
                 )}
-
-            </div>
         </div>
     );
 }
+

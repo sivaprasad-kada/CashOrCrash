@@ -4,7 +4,8 @@
 
 .game-layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 380px 1fr;
+  /* Increased from 300px */
   height: 100vh;
   gap: 20px;
   padding: 20px;
@@ -57,10 +58,11 @@
 }
 
 .balance-amount {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--purple);
-  text-shadow: 0 0 12px var(--purple-glow);
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffd700; /* Gold */
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  letter-spacing: 1px;
 }
 
 .lifeline-box {
@@ -80,68 +82,64 @@
 .question-grid {
   margin-top: 20px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(5, 1fr);
+  /* More columns for better fit? Or stick to 4 with more gap? User said 'Improve spacing' */
+  gap: 10px;
+  /* Increased from 6px */
   max-height: 300px;
   overflow-y: auto;
+  padding-right: 5px;
+  /* Prevent scroll overlap */
 }
 
-.question-number {
-  padding: 15px;
-  font-size: 0.7rem;
-  text-align: center;
-  background: rgba(124, 58, 237, 0.25);
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.question-number:hover {
-  background: rgba(124, 58, 237, 0.45);
-}
-
-.question-number.answered {
-  background: rgba(34, 197, 94, 0.6);
-}
+/* ... */
 
 /* ================================================= */
-
-.question-number.swapped {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  /* Amber/Orange */
-  border: 1px solid #fbbf24;
-  color: #fff;
-  opacity: 0.9;
-  cursor: not-allowed;
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
-}
-
-/* ================================================= */
-/* QUESTION CARD GRID (RIGHT PANEL) */
-/* ================================================= */
-
-/*
-Single source of truth:
-- Card size = 80px
-- Columns = 8
-*/
-
-/* ================================================= */
-/* QUESTION CARD GRID (RIGHT PANEL) - 5x5 25 Cards */
+/* QUESTION CARD GRID (RIGHT PANEL) - 4 Columns */
 /* ================================================= */
 
 .question-board {
   padding-top: 20px;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  /* 5 Columns */
-  grid-auto-rows: 140px;
-  /* Much taller rows */
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  /* 4 Columns per user request */
+  grid-auto-rows: 150px;
+  /* Slightly taller */
+  gap: 25px;
+  /* Increased gap */
   align-content: start;
   justify-content: start;
   overflow-y: auto;
   padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .question-board {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .question-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .game-layout {
+    grid-template-columns: 300px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .question-board {
+    grid-template-columns: 1fr;
+  }
+
+  .game-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
 }
 
 /* ================================================= */

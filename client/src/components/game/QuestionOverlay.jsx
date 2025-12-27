@@ -17,7 +17,9 @@ export default function QuestionOverlay() {
         setBidState,
         setShowOnlySelected,
         setRevealQuestion,
-        clearCurrentQuestion
+        clearCurrentQuestion,
+        localFiftyFifty, // [NEW]
+        setLocalFiftyFifty // [NEW]
     } = useGame();
 
     const [selectedOption, setSelectedOption] = useState(null);
@@ -182,6 +184,7 @@ export default function QuestionOverlay() {
             if (lifelineItem.id === "50-50") {
                 // Re-render will pick up used status and hide options
                 // No extra imperative code needed if render logic is correct
+                setLocalFiftyFifty(true); // [NEW] Activate Scoped 50-50
             }
 
         } catch (err) {
@@ -293,6 +296,36 @@ export default function QuestionOverlay() {
                             </div>
                         )}
 
+                        {/* CLOSE BUTTON (Top Right) */}
+                        <button
+                            className="close-overlay-btn"
+                            onClick={() => {
+                                setRevealQuestion(false);
+                                setShowOnlySelected(false);
+                                setBidState({ questionId: null, amount: null, confirmed: false });
+                            }}
+                            style={{
+                                position: "absolute",
+                                top: "15px",
+                                right: "15px",
+                                background: "rgba(255, 255, 255, 0.1)",
+                                color: "#fff",
+                                border: "1px solid rgba(255, 255, 255, 0.2)",
+                                borderRadius: "50%",
+                                width: "36px",
+                                height: "36px",
+                                cursor: "pointer",
+                                fontSize: "1.2rem",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                zIndex: 100,
+                                transition: "all 0.2s"
+                            }}
+                        >
+                            ✕
+                        </button>
+
                         {/* SCROLLABLE CONTENT AREA */}
                         <div className="scrollable-content">
                             {/* QUESTION CARD */}
@@ -397,18 +430,15 @@ export default function QuestionOverlay() {
                                         </div>
                                     )}
 
-                                    {/* OPTIONS GRID */}
                                     <div className="options-grid-responsive" ref={optionsGridRef}>
-                                        {/* Determine Hidden Options Deterministically */}
                                         {(() => {
-                                            // New Structure: Check for { "50-50": true }
-                                            const fiftyFiftyUsed = activeTeam?.lifelines?.some(l => l["50-50"] === true);
+                                            // [FIX] Use Local Scoped State for 50-50 VISIBILITY
+                                            const fiftyFiftyActive = localFiftyFifty;
 
+                                            // Calculate which indices to hide (deterministically based on question text hash or simple order)
+                                            // We want to hide 2 wrong answers.
                                             let hiddenIndices = [];
-                                            if (fiftyFiftyUsed) {
-                                                // Deterministically hide the first 2 WRONG answers
-                                                // We must rely on the exact same logic as the initial animation if possible, 
-                                                // or just finding the first 2 wrong options is stable enough.
+                                            if (fiftyFiftyActive && selectedQuestion) {
                                                 let count = 0;
                                                 selectedQuestion.options.forEach((opt, idx) => {
                                                     if (count < 2 && opt !== selectedQuestion.correct) {
@@ -422,15 +452,17 @@ export default function QuestionOverlay() {
                                                 const uniqueKey = opt;
                                                 const isHidden = hiddenIndices.includes(index);
 
+                                                // [FIX] Remove from DOM if hidden (Requirement: "REMOVE... completely")
+                                                if (isHidden) return null;
+
                                                 return (
                                                     <button
                                                         key={index}
                                                         data-option={uniqueKey}
                                                         ref={el => optionRefs.current[index] = el}
                                                         className={`option-btn ${selectedOption === uniqueKey ? "selected" : ""}`}
-                                                        onClick={() => !isHidden && setSelectedOption(uniqueKey)}
-                                                        disabled={submitting || isHidden}
-                                                        style={isHidden ? { opacity: 0, pointerEvents: "none" } : {}}
+                                                        onClick={() => setSelectedOption(uniqueKey)}
+                                                        disabled={submitting}
                                                     >
                                                         {opt}
                                                     </button>

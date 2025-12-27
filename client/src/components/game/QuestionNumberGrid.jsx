@@ -196,7 +196,7 @@ export default function QuestionNumberGrid() {
                 ${result ? "locked-state" : ""}
                 ${isSelected ? "selected-active" : ""} 
               `}
-            disabled={result === "correct" || result === "wrong" || result === "swapped" || animationPhase !== 'idle'}
+            disabled={!!result || animationPhase !== 'idle'}
             onClick={() => handleClick(q.id)}
           >
             {q.id}

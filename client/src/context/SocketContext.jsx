@@ -7,52 +7,62 @@ const SocketContext = createContext(null);
 export function SocketProvider({ children }) {
   const {
     setQuestionResults,
-    setTeams,
     setBidState,
     setFlipAll,
     setShowOnlySelected,
-    setRevealQuestion
+    setRevealQuestion,
+    setAdminBalance,
+    refreshState // [NEW] Fetch from DB
   } = useGame();
 
   useEffect(() => {
-    const handleQuestionLocked = ({
-      questionId,
-      result,
-      teamId,
-      balance
-    }) => {
-      /* 1️⃣ Lock question globally */
+    /* HANDLERS */
+    const handleQuestionLocked = ({ questionNumber }) => {
+      // Refresh DB state to confirm lock logic + Results
+      refreshState();
+
+      // UI Flow Reset
       setQuestionResults(prev => ({
         ...prev,
-        [questionId]: result
+        [questionNumber]: "locked"
       }));
 
-      /* 2️⃣ Update correct team balance (_id FIX) */
-      setTeams(prev =>
-        prev.map(team =>
-          team._id === teamId
-            ? { ...team, balance }
-            : team
-        )
-      );
-
-      /* 3️⃣ RESET GAME FLOW */
       setTimeout(() => {
         setFlipAll(false);
         setShowOnlySelected(false);
         setRevealQuestion(false);
-        setBidState({
-          questionId: null,
-          amount: null,
-          confirmed: false
-        });
-      }, 800); // allow user to see color
+        setBidState({ questionId: null, amount: null, confirmed: false });
+      }, 800);
     };
 
-    socket.on("questionLocked", handleQuestionLocked);
+    const handleTeamBalanceUpdated = () => {
+      refreshState(); // Fetch fresh data from DB
+    };
+
+    const handleAdminBalanceUpdated = () => {
+      refreshState(); // Fetch fresh data from DB
+    };
+
+    const handleSugarCandyApplied = () => {
+      refreshState();
+    };
+
+    const handleTeamUpdate = () => {
+      refreshState();
+    };
+
+    socket.on("question-locked", handleQuestionLocked);
+    socket.on("team-balance-updated", handleTeamBalanceUpdated);
+    socket.on("admin-balance-updated", handleAdminBalanceUpdated);
+    socket.on("sugar-candy-applied", handleSugarCandyApplied);
+    socket.on("teamUpdate", handleTeamUpdate);
 
     return () => {
-      socket.off("questionLocked", handleQuestionLocked);
+      socket.off("question-locked", handleQuestionLocked);
+      socket.off("team-balance-updated", handleTeamBalanceUpdated);
+      socket.off("admin-balance-updated", handleAdminBalanceUpdated);
+      socket.off("sugar-candy-applied", handleSugarCandyApplied);
+      socket.off("teamUpdate", handleTeamUpdate);
     };
   }, []);
 

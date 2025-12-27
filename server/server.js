@@ -12,6 +12,7 @@ import gameStateRoutes from "./routes/gamestate.routes.js"; // [NEW] GameState
 import roomRoutes from "./routes/room.routes.js"; // [NEW] Room Routes
 import sugarCandyRoutes from "./routes/sugarcandy.routes.js"; // [NEW]
 import Admin from "./models/Admin.model.js"; // [NEW] Seed
+import leaderboardRoutes from "./routes/leaderboard.routes.js"; // [NEW] Leaderboard
 
 dotenv.config();
 
@@ -22,16 +23,28 @@ const io = new Server(server, {
   cors: { origin: "*" }
 });
 
+import cookieParser from "cookie-parser";
+
 /* ============================= */
 /* MIDDLEWARE */
 /* ============================= */
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 app.use("/uploads", express.static("uploads")); // [NEW] Serve Static Files
 
 /* 🔑 Inject io into every request */
 app.use((req, res, next) => {
   req.io = io;
+  next();
+});
+
+/* 🚫 Disable Caching */
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   next();
 });
 
@@ -44,6 +57,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/state", gameStateRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/sugarcandy", sugarCandyRoutes); // [NEW]
+app.use("/api/leaderboard", leaderboardRoutes);
 
 /* ============================= */
 /* DATABASE */
