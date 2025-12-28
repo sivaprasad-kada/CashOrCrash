@@ -50,20 +50,44 @@ export const submitAnswer = async (req, res) => {
     // Normalize strings: Trim and Case-Insensitive for robustness
     const normalize = (str) => String(str || "").trim().toLowerCase();
 
-    // Explicitly handle "TIME_UP" as a forced wrong answer
-    const isTimeUp = selectedOption === "TIME_UP";
-    const submittedNorm = normalize(selectedOption);
-    const correctNorm = normalize(question.correct);
+    // EXPLICIT LOGIC: Image Question & No Options (Approval Mode)
+    // Check if question is image type AND has no options
+    const isImageApproval = question.type === "image" && (!question.options || question.options.length === 0);
 
-    const isCorrect = !isTimeUp && (submittedNorm === correctNorm);
+    let isCorrect = false;
+    let resultString = "wrong";
+
+    if (isImageApproval) {
+      // Logic for Approval Mode
+      if (normalize(selectedOption) === "approved") {
+        isCorrect = true;
+        resultString = "approved";
+      } else if (normalize(selectedOption) === "not approved") {
+        isCorrect = false;
+        resultString = "not_approved";
+      } else {
+        // Fallback if random string sent
+        isCorrect = false;
+        resultString = "not_approved";
+      }
+    } else {
+      // STANDARD LOGIC
+      // Explicitly handle "TIME_UP" as a forced wrong answer
+      const isTimeUp = selectedOption === "TIME_UP";
+      const submittedNorm = normalize(selectedOption);
+      const correctNorm = normalize(question.correct);
+
+      isCorrect = !isTimeUp && (submittedNorm === correctNorm);
+      resultString = isCorrect ? "correct" : "wrong";
+    }
 
     console.log(`[ANSWER CHECK] Q: ${questionId} | Team: ${team.name}`);
-    console.log(`[ANSWER CHECK] In: "${selectedOption}" | Correct: "${question.correct}"`);
-    console.log(`[ANSWER CHECK] Norm In: "${submittedNorm}" | Norm Correct: "${correctNorm}" | Result: ${isCorrect}`);
+    console.log(`[ANSWER CHECK] In: "${selectedOption}" | Type: ${isImageApproval ? 'APPROVAL' : 'STANDARD'}`);
+    console.log(`[ANSWER CHECK] Result: ${isCorrect} (${resultString})`);
 
     // 5. Update State
     roomState.isAnswered = true;
-    roomState.result = isCorrect ? "correct" : "wrong";
+    roomState.result = resultString;
     roomState.answeredByTeamId = teamId;
     await roomState.save();
 

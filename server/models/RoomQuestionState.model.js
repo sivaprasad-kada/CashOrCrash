@@ -5,7 +5,7 @@ const RoomQuestionStateSchema = new mongoose.Schema({
     questionNumber: { type: Number, required: true },
 
     isAnswered: { type: Boolean, default: false },
-    result: { type: String, enum: ["correct", "wrong", "swapped", null], default: null },
+    result: { type: String, enum: ["correct", "wrong", "swapped", "approved", "not_approved", null], default: null },
 
     answeredByTeamId: { type: mongoose.Schema.Types.ObjectId, ref: "Team", default: null },
     answeredAt: { type: Date, default: Date.now }

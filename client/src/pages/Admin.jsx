@@ -297,6 +297,8 @@ export default function Admin() {
                                                 <th>NAME</th>
 
                                                 <th>BALANCE</th>
+                                                <th>TOKENS</th>
+                                                <th>CANDY</th>
                                                 <th>LIFELINES</th>
                                                 {user.role === 'root' && <th>ROOM ASSIGNMENT</th>}
                                                 <th>ACTIONS</th>
@@ -306,17 +308,17 @@ export default function Admin() {
                                             {teams.map((team) => (
                                                 <tr key={team._id}>
                                                     <td>{team.name}</td>
-                                                    <td>₹ {team.balance}</td>
+                                                    <td>₹ {team.balance?.toLocaleString()}</td>
+                                                    <td>{team.unityTokens || 0}</td>
+                                                    <td>{team.sugarCandy || 0}</td>
                                                     <td>
-                                                        <td>
-                                                            <button
-                                                                onClick={() => openLifelineModal(team)}
-                                                                className="btn-purple"
-                                                                style={{ fontSize: '0.8rem', padding: '5px 10px' }}
-                                                            >
-                                                                MANAGE LIFELINES
-                                                            </button>
-                                                        </td>
+                                                        <button
+                                                            onClick={() => openLifelineModal(team)}
+                                                            className="btn-purple"
+                                                            style={{ fontSize: '0.8rem', padding: '5px 10px' }}
+                                                        >
+                                                            MANAGE
+                                                        </button>
                                                     </td>
                                                     {user.role === 'root' && (
                                                         <td>

@@ -63,12 +63,12 @@ router.post("/apply", async (req, res) => {
         const team = await Team.findById(teamId);
         if (!team) return res.status(404).json({ error: "Team not found" });
 
-        // Logic check
+        // Logic check: Limit to 2 uses per team
         if (team.sugarCandyAddCount >= 2) {
-            return res.status(400).json({ error: "Limit reached" });
+            return res.status(400).json({ error: "Limit reached (Max 2 uses)" });
         }
 
-        // Always increment count (attempted)
+        // Increment Usage Count
         team.sugarCandyAddCount = (team.sugarCandyAddCount || 0) + 1;
 
         if (answer === "Approved") {

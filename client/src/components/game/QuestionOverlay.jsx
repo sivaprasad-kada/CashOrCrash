@@ -108,7 +108,7 @@ export default function QuestionOverlay() {
     useEffect(() => {
         if (!feedback) return;
 
-        if (feedback === "correct") {
+        if (feedback === "correct" || feedback === "approved") {
             // Confetti Animation
             if (confettiRef.current) {
                 // Simple particle burst
@@ -135,7 +135,7 @@ export default function QuestionOverlay() {
             // Slower text pop
             gsap.fromTo(".feedback-text", { scale: 0, rotation: -20 }, { scale: 1.5, rotation: 0, duration: 1.2, ease: "elastic.out(1, 0.3)" });
 
-        } else if (feedback === "wrong") {
+        } else if (feedback === "wrong" || feedback === "not_approved") {
             // Shake and Red Flash
             gsap.fromTo(".question-overlay-container",
                 { x: -20 },
@@ -221,23 +221,36 @@ export default function QuestionOverlay() {
         }
     };
 
-    const submit = async () => {
-        if (!selectedOption || submitting || !selectedQuestion) return;
+    // --- IMAGE APPROVAL CONFIRMATION ---
+    const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
+
+    const submit = async (answerOverride = null) => {
+        const finalAnswer = answerOverride || selectedOption;
+
+        if (!finalAnswer || submitting || !selectedQuestion) return;
 
         try {
             setSubmitting(true);
             clearInterval(timerRef.current);
 
             // Determine local result for animation
-            const isLocalCorrect = selectedOption === selectedQuestion.correct;
-            setFeedback(isLocalCorrect ? "correct" : "wrong");
+            // For Image Approval, we map 'APPROVED' -> 'correct', 'NOT APPROVED' -> 'wrong' locally for feedback
+            let feedbackType = "wrong";
+            if (finalAnswer === "APPROVED") feedbackType = "approved"; // custom string handle in effect
+            else if (finalAnswer === "NOT APPROVED") feedbackType = "not_approved";
+            else {
+                const isLocalCorrect = finalAnswer === selectedQuestion.correct;
+                feedbackType = isLocalCorrect ? "correct" : "wrong";
+            }
+
+            setFeedback(feedbackType);
 
             const qId = selectedQuestion.number;
 
             const res = await submitAnswer({
                 teamId: activeTeam._id,
                 questionId: qId,
-                answer: selectedOption,
+                answer: finalAnswer,
                 bid: bidState.amount
             });
 
@@ -258,6 +271,21 @@ export default function QuestionOverlay() {
             setSubmitting(false);
             setFeedback(null); // Reset if error
         }
+    };
+
+    const handleApprovalClick = () => {
+        setShowApprovalConfirm(true);
+    };
+
+    const handleDisapprovalClick = () => {
+        if (confirm("Are you sure you want to DISAPPROVE this answer? The bid amount will be lost.")) {
+            submit("NOT APPROVED");
+        }
+    };
+
+    const confirmApproval = () => {
+        setShowApprovalConfirm(false);
+        submit("APPROVED");
     };
 
     const formatTime = (s) => {
@@ -354,7 +382,7 @@ export default function QuestionOverlay() {
                             {!result && !feedback && (
                                 <div className="interaction-area">
 
-                                    {/* CONFIRMATION DIALOG */}
+                                    {/* LIFELINE CONFIRMATION DIALOG */}
                                     {confirmLifeline && (
                                         <div className="overlay-backdrop" style={{ zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                             <div className="bid-panel">
@@ -380,8 +408,72 @@ export default function QuestionOverlay() {
                                         </div>
                                     )}
 
+                                    {/* APPROVAL CONFIRMATION DIALOG */}
+                                    {showApprovalConfirm && (
+                                        <div className="overlay-backdrop" style={{ zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            <div className="bid-panel">
+                                                <h2>Confirm Approval</h2>
+                                                <p>Are you sure you want to <strong>APPROVE</strong> this answer?</p>
+                                                <p>The team will be rewarded with 2x their bid.</p>
+
+                                                <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+                                                    <button
+                                                        onClick={() => setShowApprovalConfirm(false)}
+                                                        style={{ background: "rgba(255,255,255,0.1)", border: "1px solid var(--glass-border)" }}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={confirmApproval}
+                                                        style={{ background: "#2ecc71", color: "#000" }}
+                                                    >
+                                                        YES, APPROVE
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+
                                     <div className="options-grid-responsive" ref={optionsGridRef}>
                                         {(() => {
+                                            // CHECK: Image + Empty Options (Approval Mode)
+                                            if (selectedQuestion.type === "image" && (!selectedQuestion.options || selectedQuestion.options.length === 0)) {
+                                                return (
+                                                    <>
+                                                        <button
+                                                            className={`option-btn ${selectedOption === "APPROVED" ? "selected" : ""}`}
+                                                            onClick={handleApprovalClick}
+                                                            disabled={submitting}
+                                                            style={{
+                                                                backgroundColor: selectedOption === "APPROVED" ? "#2ecc71" : "rgba(46, 204, 113, 0.1)",
+                                                                border: "2px solid #2ecc71",
+                                                                color: selectedOption === "APPROVED" ? "#000" : "#2ecc71",
+                                                                fontWeight: "bold",
+                                                                fontSize: "1.2rem"
+                                                            }}
+                                                        >
+                                                            APPROVED
+                                                        </button>
+                                                        <button
+                                                            className={`option-btn ${selectedOption === "NOT APPROVED" ? "selected" : ""}`}
+                                                            onClick={handleDisapprovalClick}
+                                                            disabled={submitting}
+                                                            style={{
+                                                                backgroundColor: selectedOption === "NOT APPROVED" ? "#e74c3c" : "rgba(231, 76, 60, 0.1)",
+                                                                border: "2px solid #e74c3c",
+                                                                color: selectedOption === "NOT APPROVED" ? "#fff" : "#e74c3c",
+                                                                fontWeight: "bold",
+                                                                fontSize: "1.2rem"
+                                                            }}
+                                                        >
+                                                            NOT APPROVED
+                                                        </button>
+                                                    </>
+                                                );
+                                            }
+
+                                            // EXISTING LOGIC
                                             const fiftyFiftyActive = localFiftyFifty;
 
                                             let hiddenIndices = [];
@@ -417,11 +509,19 @@ export default function QuestionOverlay() {
                                         })()}
                                     </div>
 
-                                    <div className="action-row">
-                                        <button onClick={submit} disabled={submitting || !selectedOption} className="submit-answer-btn">
-                                            {submitting ? "VERIFYING..." : "LOCK ANSWER"}
-                                        </button>
-                                    </div>
+                                    {/* Action Row: Hidden for Image Approval Mode to avoid confusion, or keep disabled? 
+                                        Actually, let's keep it but maybe hide it if in approval mode since buttons handle it now.
+                                        But wait, if user cancels confirmation, they might want to click "Lock Answer"?
+                                        No, "Lock Answer" relies on selectedOption.
+                                        If we separate the flow, we should probably HIDE the "Lock Answer" button for Approval Mode to avoid ambiguity.
+                                    */}
+                                    {!(selectedQuestion.type === "image" && (!selectedQuestion.options || selectedQuestion.options.length === 0)) && (
+                                        <div className="action-row">
+                                            <button onClick={() => submit()} disabled={submitting || !selectedOption} className="submit-answer-btn">
+                                                {submitting ? "VERIFYING..." : "LOCK ANSWER"}
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {/* LIFELINES MOVED TO BOTTOM */}
                                     <div className="lifelines-section" style={{ marginTop: '20px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
@@ -469,9 +569,9 @@ export default function QuestionOverlay() {
                             {feedback && (
                                 <div className={`feedback-overlay ${feedback}`}>
                                     <h1 className="feedback-text">
-                                        {feedback === "correct" ? "🎉 CORRECT! 🎉" : "❌ WRONG! ❌"}
+                                        {(feedback === "correct" || feedback === "approved") ? "🎉 CORRECT! 🎉" : "❌ WRONG! ❌"}
                                     </h1>
-                                    {feedback === "correct" && <div className="confetti-container" ref={confettiRef}></div>}
+                                    {(feedback === "correct" || feedback === "approved") && <div className="confetti-container" ref={confettiRef}></div>}
                                 </div>
                             )}
                         </div>
