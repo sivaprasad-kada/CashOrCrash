@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useGame } from "../context/GameContext";
 
 export default function SugarCandy() {
     const { teamId } = useParams();
