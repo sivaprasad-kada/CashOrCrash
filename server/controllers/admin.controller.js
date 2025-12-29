@@ -196,27 +196,40 @@ export const assignTeamRoom = async (req, res) => {
 export const updateTeamResources = async (req, res) => {
     try {
         const { teamId, type, amount, adminId } = req.body;
-        // type: 'unityTokens' or 'sugarCandy'
 
-        const team = await Team.findById(teamId);
-        if (!team) return res.status(404).json({ error: "Team not found" });
-
-        if (type === 'unityTokens') {
-            const current = team.unityTokens || 0;
-            if (current + amount > 2) return res.status(400).json({ error: "Max 2 Unity Tokens allowed" });
-            team.unityTokens = current + amount;
-        } else if (type === 'sugarCandy') {
-            // Note: sugarCandy uses a separate counter for "additions" in some logic (e.g. sugarCandyAddCount),
-            // but the prompt implies limiting the *adding* action or the *balance*.
-            // Assuming "restrict that admin can add 2 candies" means resulting balance/count shouldn't exceed 2 OR added times.
-            // Let's stick to balance limit = 2 based on phrasing "2 candies... per team"
-            const current = team.sugarCandy || 0;
-            if (current + amount > 2) return res.status(400).json({ error: "Max 2 Sugar Candies allowed" });
-            team.sugarCandy = current + amount;
+        // Validation
+        if (!['unityTokens', 'sugarCandy'].includes(type)) {
+            return res.status(400).json({ error: "Invalid resource type" });
         }
-        await team.save();
-        res.json(team);
+
+        // ATOMIC UPDATE: Check constraint (current < 2) AND increment in ONE shot.
+        // We use the $lt operator in the query part to ensure we only update if below limit.
+        // Note: 'amount' is usually 1. If amount > 1 this simple check might need adjustment, but for now assumption is +1 increments.
+
+        // Construct Dynamic Update Object
+        const fieldName = type === 'unityTokens' ? 'unityTokens' : 'sugarCandy';
+
+        // 1. Try to increment atomicallly if below limit
+        const updatedTeam = await Team.findOneAndUpdate(
+            {
+                _id: teamId,
+                [fieldName]: { $lt: 2 } // CONSTRAINT: Only if currently less than 2
+            },
+            { $inc: { [fieldName]: 1 } }, // ACTION: Increment by 1
+            { new: true } // RESULT: Return updated doc
+        );
+
+        if (!updatedTeam) {
+            // If null, either team doesn't exist OR limit reached.
+            // Check existence quickly or just assume limit.
+            const exists = await Team.exists({ _id: teamId });
+            if (!exists) return res.status(404).json({ error: "Team not found" });
+            return res.status(400).json({ error: `Limit reached (Max 2 ${type})` });
+        }
+
+        res.json(updatedTeam);
     } catch (err) {
+        console.error("Resource Update Error:", err);
         res.status(500).json({ error: "Failed to update resources" });
     }
 };

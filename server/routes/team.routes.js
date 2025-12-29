@@ -81,7 +81,15 @@ router.put("/:id", async (req, res) => {
     const { balance, name } = req.body;
     const updatedTeam = await Team.findByIdAndUpdate(
       req.params.id,
-      { $set: { ...(name && { name }), ...(balance !== undefined && { balance }), ...(req.body.lifelines && { lifelines: req.body.lifelines }) } },
+      {
+        $set: {
+          ...(name && { name }),
+          ...(balance !== undefined && { balance }),
+          ...(req.body.unityTokens !== undefined && { unityTokens: req.body.unityTokens }),
+          ...(req.body.sugarCandy !== undefined && { sugarCandy: req.body.sugarCandy }),
+          ...(req.body.lifelines && { lifelines: req.body.lifelines })
+        }
+      },
       { new: true }
     );
     res.json(updatedTeam);

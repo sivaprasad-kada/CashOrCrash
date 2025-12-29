@@ -1,5 +1,6 @@
 import express from "express";
 import http from "http";
+import path from "path"; // [NEW]
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -29,7 +30,9 @@ import cookieParser from "cookie-parser";
 /* MIDDLEWARE */
 /* ============================= */
 app.use(cors({
-  origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+  origin: process.env.NODE_ENV === "production"
+    ? [process.env.CLIENT_URL, "https://your-app-name.onrender.com"]
+    : ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
   credentials: true
 }));
 app.use(express.json());
@@ -59,6 +62,9 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/sugarcandy", sugarCandyRoutes); // [NEW]
 app.use("/api/leaderboard", leaderboardRoutes);
 
+// [NEW] Health Check
+app.get("/health", (req, res) => res.status(200).send("OK"));
+
 /* ============================= */
 /* DATABASE */
 /* ============================= */
@@ -82,6 +88,21 @@ io.on("connection", socket => {
 /* SERVER */
 /* ============================= */
 const PORT = process.env.PORT || 5000;
+
+// [NEW] Deployment: Serve Frontend
+if (process.env.NODE_ENV === "production") {
+  const __dirname = path.resolve();
+  app.use(express.static(path.join(__dirname, "../client/dist")));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "../client", "dist", "index.html"));
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.send("API is running...");
+  });
+}
+
 server.listen(PORT, () =>
   console.log(`🚀 Server running on port ${PORT}`)
 );

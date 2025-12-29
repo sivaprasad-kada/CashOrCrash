@@ -4,6 +4,7 @@ import RoomQuestionState from "../models/RoomQuestionState.model.js";
 import Admin from "../models/Admin.model.js";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import { getCache, setCache } from "../utils/cache.js";
 
 const getAdminRoomId = (req) => {
   const token = req.cookies.token;
@@ -189,13 +190,23 @@ export const getQuestions = async (req, res) => {
       roomId = adminRoomId;
     }
 
+    const cacheKey = roomId ? `questions_room_${roomId}` : `questions_global`;
+    const cachedData = getCache(cacheKey);
+
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
+    // cache miss - fetch
+    // 1. Fetch Questions (Static) - Could be cached separately but Mongo is fast enough for 100 docs
     const questions = await Question.find({}).sort({ number: 1 });
 
     if (!roomId) {
+      setCache(cacheKey, questions, 10); // Cache 10s
       return res.json(questions);
     }
 
-    // Fetch room states
+    // 2. Fetch room states
     const states = await RoomQuestionState.find({ roomId });
     const stateMap = {};
     states.forEach(s => stateMap[s.questionNumber] = s);
@@ -209,12 +220,16 @@ export const getQuestions = async (req, res) => {
       };
     });
 
+    setCache(cacheKey, merged, 3); // Cache 3s (Short TTL due to game state updates)
     res.json(merged);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+/* ============================= */
+/* GET SINGLE QUESTION */
+/* ============================= */
 /* ============================= */
 /* GET SINGLE QUESTION */
 /* ============================= */
@@ -227,6 +242,12 @@ export const getQuestion = async (req, res) => {
     const adminRoomId = getAdminRoomId(req);
     if (adminRoomId) {
       roomId = adminRoomId;
+    }
+
+    const cacheKey = `question_${roomId || 'global'}_${id}`;
+    const cachedData = getCache(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
     }
 
     const question = await Question.findOne({ number: id });
@@ -245,6 +266,7 @@ export const getQuestion = async (req, res) => {
       }
     }
 
+    setCache(cacheKey, merged, 2); // Cache 2s
     res.json(merged);
   } catch (err) {
     res.status(500).json({ error: err.message });

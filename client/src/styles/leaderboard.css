@@ -31,21 +31,24 @@
 /* ============================= */
 
 .team-card {
-  padding: 22px;
+  padding: 15px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   box-shadow: 0 0 18px rgba(124, 58, 237, 0.25);
   transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
 }
 
 .team-card:hover {
   transform: translateY(-6px) scale(1.05);
 }
 
-/* ============================= */
-/* RANK BADGE */
-/* ============================= */
+/* ... existing rank ... */
 
 .team-rank {
   font-size: 1.1rem;
@@ -53,23 +56,23 @@
   margin-bottom: 8px;
 }
 
-/* ============================= */
-/* AVATAR */
-/* ============================= */
+/* ... existing avatar ... */
 
 .team-avatar {
-  width: 64px;
-  height: 64px;
-  margin: 12px auto;
+  width: 50px;
+  /* Reduced slightly to save space */
+  height: 50px;
+  margin: 10px auto;
   border-radius: 50%;
   background: var(--purple);
   color: white;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 15px var(--purple-glow);
+  flex-shrink: 0;
 }
 
 /* ============================= */
@@ -77,33 +80,110 @@
 /* ============================= */
 
 .team-name {
-  font-weight: 600;
+  font-weight: 700;
   margin-top: 8px;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  /* Wrap long names */
+  width: 100%;
 }
 
 .team-balance {
-  margin-top: 6px;
+  margin-top: 8px;
   color: var(--purple);
-  font-weight: 700;
+  font-weight: 800;
+  font-size: clamp(1.2rem, 1.5vw, 1.6rem);
+  /* Responsive font size */
+  word-break: break-word;
+  /* Ensure big numbers wrap if needed */
+  line-height: 1.1;
+  width: 100%;
+}
+
+.team-room {
+  font-size: 1rem;
+  color: #ccc;
+  margin: 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* ============================= */
 /* TOP 3 HIGHLIGHTS */
 /* ============================= */
 
+@keyframes pulse-gold {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+    transform: translateY(-6px) scale(1.05);
+  }
+
+  70% {
+    box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0);
+    transform: translateY(-6px) scale(1.08);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+    transform: translateY(-6px) scale(1.05);
+  }
+}
+
+@keyframes pulse-silver {
+  0% {
+    box-shadow: 0 0 0 0 rgba(192, 192, 192, 0.4);
+    transform: translateY(-6px) scale(1.05);
+  }
+
+  70% {
+    box-shadow: 0 0 20px 10px rgba(192, 192, 192, 0);
+    transform: translateY(-6px) scale(1.08);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(192, 192, 192, 0);
+    transform: translateY(-6px) scale(1.05);
+  }
+}
+
+@keyframes pulse-bronze {
+  0% {
+    box-shadow: 0 0 0 0 rgba(205, 127, 50, 0.4);
+    transform: translateY(-6px) scale(1.05);
+  }
+
+  70% {
+    box-shadow: 0 0 20px 10px rgba(205, 127, 50, 0);
+    transform: translateY(-6px) scale(1.08);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(205, 127, 50, 0);
+    transform: translateY(-6px) scale(1.05);
+  }
+}
+
 .team-card.gold {
   border: 2px solid gold;
-  box-shadow: 0 0 30px gold;
+  box-shadow: none;
+  animation: pulse-gold 2s infinite;
 }
 
 .team-card.silver {
   border: 2px solid silver;
-  box-shadow: 0 0 30px silver;
+  box-shadow: none;
+  animation: pulse-silver 2s infinite;
+  animation-delay: 0.5s;
 }
 
 .team-card.bronze {
   border: 2px solid #cd7f32;
-  box-shadow: 0 0 30px #cd7f32;
+  box-shadow: none;
+  animation: pulse-bronze 2s infinite;
+  animation-delay: 1s;
 }
 
 /* ============================= */

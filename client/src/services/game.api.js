@@ -1,7 +1,9 @@
 import axios from "axios";
 
-const GAME_API = "http://localhost:5000/api/game";
-const TEAM_API = "http://localhost:5000/api/teams";
+import { API_BASE_URL } from "../config";
+
+const GAME_API = `${API_BASE_URL}/api/game`;
+const TEAM_API = `${API_BASE_URL}/api/teams`;
 
 export const submitAnswer = (payload) =>
   axios.post(`${GAME_API}/answer`, payload);

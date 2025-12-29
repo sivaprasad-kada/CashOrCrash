@@ -4,10 +4,11 @@ import axios from "axios";
 import gsap from "gsap";
 import { useGame } from "../context/GameContext";
 import "../styles/admin.css";
+import { API_BASE_URL } from "../config";
 
-const API_URL = "http://localhost:5000/api/teams";
-const ADMIN_API = "http://localhost:5000/api/admin";
-const ROOM_API = "http://localhost:5000/api/rooms";
+const API_URL = `${API_BASE_URL}/api/teams`;
+const ADMIN_API = `${API_BASE_URL}/api/admin`;
+const ROOM_API = `${API_BASE_URL}/api/rooms`;
 
 export default function Admin() {
     const navigate = useNavigate();
@@ -31,6 +32,43 @@ export default function Admin() {
     const [activeRoomId, setActiveRoomId] = useState(""); // For Dropdown
 
     const containerRef = useRef(null);
+    const [processingAction, setProcessingAction] = useState(false);
+
+    // --- EDIT TEAM MODAL ---
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editingTeam, setEditingTeam] = useState(null);
+
+    const openEditModal = (team) => {
+        setEditingTeam({ ...team }); // Clone to avoid direct mutation
+        setEditModalOpen(true);
+    };
+
+    const closeEditModal = () => {
+        setEditModalOpen(false);
+        setEditingTeam(null);
+    };
+
+    const handleUpdateTeam = async (e) => {
+        e.preventDefault();
+        try {
+            const { _id, name, balance, unityTokens, sugarCandy } = editingTeam;
+            const res = await axios.put(`${API_URL}/${_id}`, {
+                name,
+                balance: Number(balance),
+                unityTokens: Number(unityTokens),
+                sugarCandy: Number(sugarCandy)
+            });
+
+            // Optimistic Update
+            const updated = res.data;
+            setTeams(prev => prev.map(t => t._id === updated._id ? updated : t));
+
+            closeEditModal();
+            alert("Team Updated!");
+        } catch (err) {
+            alert("Failed to update team");
+        }
+    };
 
     // --- CHECK SESSION & REDIRECT ---
     useEffect(() => {
@@ -145,16 +183,41 @@ export default function Admin() {
     };
 
     const updateBalance = async (id, current, amount) => {
-        try { await axios.put(`${API_URL}/${id}`, { balance: current + amount }); fetchData(); } catch (err) { }
+        // Optimistic UI Update immediately
+        const newBalance = current + amount;
+        setTeams(prev => prev.map(t => t._id === id ? { ...t, balance: newBalance } : t));
+
+        try {
+            const res = await axios.put(`${API_URL}/${id}`, { balance: newBalance });
+            // Confirm with server response if needed, but optimistic is fastest
+            if (res.data) setTeams(prev => prev.map(t => t._id === id ? res.data : t));
+        } catch (err) {
+            // Revert on failure
+            setTeams(prev => prev.map(t => t._id === id ? { ...t, balance: current } : t));
+            alert("Update failed, reverted balance.");
+        }
     };
 
     const addResource = async (teamId, type, amount) => {
+        if (processingAction) return;
+        setProcessingAction(true);
+        setTimeout(() => setProcessingAction(false), 500); // 500ms debounce
+
         try {
-            await axios.post(`${ADMIN_API}/update-team-resources`, {
+            const res = await axios.post(`${ADMIN_API}/update-team-resources`, {
                 teamId, type, amount, adminId: user._id
             });
-            fetchData();
-            alert(`Added ${amount} ${type === 'unityTokens' ? 'Token(s)' : 'Candy'}`);
+
+            // Optimistic / Local Update
+            const updatedTeam = res.data;
+            setTeams(prevTeams => prevTeams.map(t => t._id === updatedTeam._id ? updatedTeam : t));
+
+            // No Alert needed if UI updates instantly, or small toast. 
+            // Existing alert is fine but let's make it console log or subtle if we want "real-time" feel.
+            // Keeping alert but minimal blocking? 
+            // Actually user asked for "Simulates real-time...". Alerts block execution.
+            // Let's remove alert or use a temporary status. For now, just console log.
+            console.log(`Added ${type}`);
         } catch (err) {
             alert(err.response?.data?.error || "Failed");
         }
@@ -334,9 +397,18 @@ export default function Admin() {
                                                         </td>
                                                     )}
                                                     <td className="actions">
+                                                        <button className="btn-small btn-purple" style={{ background: '#3498db' }} onClick={() => openEditModal(team)}>✏️</button>
                                                         <button className="btn-small btn-green" onClick={() => updateBalance(team._id, team.balance, 1000)}>+1k</button>
-                                                        <button className="btn-small btn-purple" onClick={() => addResource(team._id, 'unityTokens', 1)}>+Token</button>
-                                                        <button className="btn-small btn-pink" style={{ background: '#e91e63' }} onClick={() => addResource(team._id, 'sugarCandy', 1)}>+Candy</button>
+                                                        <button className="btn-small btn-purple" onClick={() => {
+                                                            if (window.confirm(`Give 1 Unity Token to ${team.name}?`)) {
+                                                                addResource(team._id, 'unityTokens', 1);
+                                                            }
+                                                        }}>+Token</button>
+                                                        <button className="btn-small btn-pink" style={{ background: '#e91e63' }} onClick={() => {
+                                                            if (window.confirm(`Give 1 Sugar Candy to ${team.name}?`)) {
+                                                                addResource(team._id, 'sugarCandy', 1);
+                                                            }
+                                                        }}>+Candy</button>
                                                         <button className="btn-small btn-delete" onClick={() => deleteTeam(team._id)}>🗑️</button>
                                                     </td>
                                                 </tr>
@@ -548,6 +620,68 @@ export default function Admin() {
                         </div>
                     </div>
                 )}
+            {/* TEAM EDIT MODAL */}
+            {editModalOpen && editingTeam && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    zIndex: 1001, backdropFilter: 'blur(5px)'
+                }}>
+                    <div style={{
+                        background: '#1a1a1a', padding: '30px', borderRadius: '15px', width: '400px',
+                        border: '1px solid #3498db', color: 'white',
+                        boxShadow: '0 0 30px rgba(52, 152, 219, 0.3)'
+                    }}>
+                        <h2 style={{ color: '#3498db', marginBottom: '20px', textAlign: 'center' }}>EDIT {editingTeam.name}</h2>
+
+                        <form onSubmit={handleUpdateTeam} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', color: '#aaa' }}>Team Name</label>
+                                <input
+                                    type="text"
+                                    value={editingTeam.name}
+                                    onChange={e => setEditingTeam({ ...editingTeam, name: e.target.value })}
+                                    style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', color: '#aaa' }}>Balance</label>
+                                <input
+                                    type="number"
+                                    value={editingTeam.balance}
+                                    onChange={e => setEditingTeam({ ...editingTeam, balance: e.target.value })}
+                                    style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '5px', color: '#aaa' }}>Unity Tokens</label>
+                                    <input
+                                        type="number"
+                                        value={editingTeam.unityTokens || 0}
+                                        onChange={e => setEditingTeam({ ...editingTeam, unityTokens: e.target.value })}
+                                        style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
+                                    />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '5px', color: '#aaa' }}>Sugar Candy</label>
+                                    <input
+                                        type="number"
+                                        value={editingTeam.sugarCandy || 0}
+                                        onChange={e => setEditingTeam({ ...editingTeam, sugarCandy: e.target.value })}
+                                        style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                <button type="button" onClick={closeEditModal} style={{ flex: 1, padding: '10px', background: '#555', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '5px' }}>CANCEL</button>
+                                <button type="submit" style={{ flex: 1, padding: '10px', background: '#3498db', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', borderRadius: '5px' }}>SAVE CHANGES</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

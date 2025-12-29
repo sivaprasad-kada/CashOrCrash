@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../config";
 
 const GameContext = createContext();
 
 const TOTAL_QUESTIONS = 100;
-const GAME_API = "http://localhost:5000/api/game";
-const TEAM_API = "http://localhost:5000/api/teams";
+const GAME_API = `${API_BASE_URL}/api/game`;
+const TEAM_API = `${API_BASE_URL}/api/teams`;
 
 export const useGame = () => useContext(GameContext);
 
@@ -46,8 +47,8 @@ export function GameProvider({ children }) {
   const [user, setUser] = useState(null); // [NEW] Full User Object (id, role, etc)
 
   // [NEW] Persist API
-  const STATE_API = "http://localhost:5000/api/state";
-  const ADMIN_API = "http://localhost:5000/api/admin";
+  const STATE_API = `${API_BASE_URL}/api/state`;
+  const ADMIN_API = `${API_BASE_URL}/api/admin`;
 
   // [NEW] Axios Config for Cookies
   axios.defaults.withCredentials = true;
@@ -204,21 +205,22 @@ export function GameProvider({ children }) {
     // ... (existing comments)
   }, []);
 
+  // COOLDOWN STATE
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const REFRESH_COOLDOWN = 2000; // 2 seconds
+
   const refreshAdminBalance = async () => {
+    const now = Date.now();
+    if (now - lastRefreshTime < REFRESH_COOLDOWN) return; // Silent return
+    setLastRefreshTime(now);
+
     try {
       if (adminRoomId) {
-        // [NEW] Use scoped endpoint if we know the room
         const res = await axios.get(`${ADMIN_API}/room-balance/${adminRoomId}`);
-        if (res.data.success) {
-          setAdminBalance(res.data.balance);
-          // Optionally update name if needed, but balance is key
-        }
+        if (res.data.success) setAdminBalance(res.data.balance);
       } else {
-        // Fallback to Session
         const meRes = await axios.get(`${ADMIN_API}/me`);
-        if (meRes.data.success && meRes.data.admin) {
-          setAdminBalance(meRes.data.admin.balance);
-        }
+        if (meRes.data.success && meRes.data.admin) setAdminBalance(meRes.data.admin.balance);
       }
     } catch (e) {
       console.warn("Failed to refresh admin balance");
@@ -226,9 +228,12 @@ export function GameProvider({ children }) {
   };
 
   const refreshTeamBalance = async (teamId) => {
+    // Allows frequent updates for different teams, but debounced per global calls if needed
+    // For specific team refresh, we let it pass but maybe debounce broadly?
+    // Let's keep it simple: Just avoid rapid clicking.
+
     try {
       if (!teamId) return;
-      // Add timestamp to prevent browser caching
       const res = await axios.get(`${TEAM_API}/${teamId}?t=${Date.now()}`);
       if (res.data) {
         setTeams(prev => prev.map(t => t._id === teamId ? res.data : t));

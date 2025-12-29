@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useGame } from "../context/GameContext";
+import { API_BASE_URL } from "../config";
 
 export default function SugarCandy() {
     const { teamId } = useParams();
@@ -20,11 +21,11 @@ export default function SugarCandy() {
         const init = async () => {
             try {
                 // 1. Fetch Team
-                const teamRes = await axios.get(`http://localhost:5000/api/teams/${teamId}`);
+                const teamRes = await axios.get(`${API_BASE_URL}/api/teams/${teamId}`);
                 setTeam(teamRes.data);
 
                 // 2. Fetch Cards
-                const cardsRes = await axios.get("http://localhost:5000/api/sugarcandy");
+                const cardsRes = await axios.get(`${API_BASE_URL}/api/sugarcandy`);
                 setCards(cardsRes.data);
 
                 setLoading(false);
@@ -41,7 +42,7 @@ export default function SugarCandy() {
         init();
 
         // Seed if empty (dev utility)
-        axios.post("http://localhost:5000/api/sugarcandy/seed").catch(() => { });
+        axios.post(`${API_BASE_URL}/api/sugarcandy/seed`).catch(() => { });
     }, [teamId]);
 
     const handleCardClick = (card) => {
@@ -66,7 +67,7 @@ export default function SugarCandy() {
                 // But let's trust the backend to reject if invalid.
             }
 
-            const res = await axios.post("http://localhost:5000/api/sugarcandy/apply", {
+            const res = await axios.post(`${API_BASE_URL}/api/sugarcandy/apply`, {
                 teamId: team._id,
                 percentage: selectedCard.percentage,
                 answer,
@@ -110,7 +111,7 @@ export default function SugarCandy() {
                         <button
                             onClick={async () => {
                                 try {
-                                    const res = await axios.get(`http://localhost:5000/api/teams/${teamId}?t=${Date.now()}`);
+                                    const res = await axios.get(`${API_BASE_URL}/api/teams/${teamId}?t=${Date.now()}`);
                                     setTeam(res.data);
                                 } catch (e) { console.error("Refresh failed") }
                             }}
@@ -173,9 +174,13 @@ export default function SugarCandy() {
                         onMouseLeave={(e) => !isLimitReached && (e.currentTarget.style.transform = 'translateY(0)')}
                     >
                         <div style={{ fontSize: '3rem', fontWeight: 'bold' }}>{card.percentage}%</div>
+                        <div style={{ fontSize: '1.5rem', marginTop: '5px', color: '#f1c40f', fontWeight: 'bold' }}>
+                            ₹ {((adminBalance || 0) * card.percentage / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
                         <div style={{ fontSize: '0.8rem', marginTop: '10px' }}>SUGAR RUSH</div>
                     </div>
-                ))}
+                ))
+                }
             </div>
 
             {/* MODAL */}

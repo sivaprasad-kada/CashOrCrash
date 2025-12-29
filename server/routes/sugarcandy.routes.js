@@ -16,9 +16,11 @@ router.get("/", async (req, res) => {
         if (cards.length === 0) {
             // Return static defaults if empty
             return res.json([
-                { percentage: 25, question: "Risk 25%?" },
-                { percentage: 50, question: "Risk 50%?" },
-                { percentage: 100, question: "Risk ALL?" }
+                { percentage: 10, question: "10%" },
+                { percentage: 20, question: "20%" },
+                { percentage: 30, question: "30%" },
+                { percentage: 40, question: "40%" },
+                { percentage: 50, question: "50%" }
             ]);
         }
         res.json(cards);
@@ -30,16 +32,15 @@ router.get("/", async (req, res) => {
 // SEED (Dev)
 router.post("/seed", async (req, res) => {
     try {
-        const count = await SugarCandy.countDocuments();
-        if (count === 0) {
-            await SugarCandy.insertMany([
-                { percentage: 10, question: "Small risk, small reward." },
-                { percentage: 25, question: "A quarter of your fortune at stake." },
-                { percentage: 50, question: "Half in? Or half out?" },
-                { percentage: 100, question: "ALL IN. DO OR DIE." }
-            ]);
-        }
-        res.json({ success: true });
+        await SugarCandy.deleteMany({});
+        await SugarCandy.insertMany([
+            { percentage: 10, question: "Safe bet. 10% Stake." },
+            { percentage: 20, question: "Double the fun. 20% Stake." },
+            { percentage: 30, question: "Getting serious. 30% Stake." },
+            { percentage: 40, question: "High roller? 40% Stake." },
+            { percentage: 50, question: "Halfway there. 50% Stake." }
+        ]);
+        res.json({ success: true, message: "Reseeded 10-50%" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

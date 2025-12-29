@@ -44,10 +44,10 @@ export default function Leaderboard() {
             </div>
 
             <div className="team-name">{team.name}</div>
-            <div className="team-room" style={{ fontSize: '0.8rem', color: '#aaa', marginBottom: '5px' }}>
+            <div className="team-room">
               📍 {team.roomId?.name || 'Lobby'}
             </div>
-            <div className="team-balance">₹ {team.balance}</div>
+            <div className="team-balance">₹ {team.balance.toLocaleString('en-IN')}</div>
           </div>
         ))}
       </div>

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useGame } from "../../context/GameContext";
 import { submitAnswer } from "../../services/game.api";
 import gsap from "gsap";
+import { API_BASE_URL } from "../../config";
 
 export default function QuestionOverlay() {
     const {
@@ -368,14 +369,14 @@ export default function QuestionOverlay() {
                                 {selectedQuestion.type === "image" && selectedQuestion.image && (
                                     <div className="question-image-container" style={{ margin: "10px 0", borderRadius: "8px", overflow: "hidden" }}>
                                         <img
-                                            src={`http://localhost:5000${selectedQuestion.image}`}
+                                            src={`${API_BASE_URL}${selectedQuestion.image}`}
                                             alt="Question"
                                             style={{ width: "100%", maxHeight: "300px", objectFit: "contain", border: "1px solid var(--glass-border)" }}
                                         />
                                     </div>
                                 )}
 
-                                <h3>{selectedQuestion.text}</h3>
+                                <h3 style={{ whiteSpace: "pre-wrap" }}>{selectedQuestion.text}</h3>
                             </div>
 
                             {/* INTERACTIVE AREA */}
