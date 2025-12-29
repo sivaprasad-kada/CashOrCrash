@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useGame } from "../context/GameContext";
+import gsap from "gsap";
 import "../styles/admin.css";
 
 const API_URL = "/teams";
