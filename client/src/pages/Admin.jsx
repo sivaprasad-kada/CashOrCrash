@@ -1,14 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import gsap from "gsap";
-import { useGame } from "../context/GameContext";
+import api from "../services/api";
 import "../styles/admin.css";
-import { API_BASE_URL } from "../config";
 
-const API_URL = `${API_BASE_URL}/api/teams`;
-const ADMIN_API = `${API_BASE_URL}/api/admin`;
-const ROOM_API = `${API_BASE_URL}/api/rooms`;
+const API_URL = "/api/teams";
+const ADMIN_API = "/api/admin";
+const ROOM_API = "/api/rooms";
 
 export default function Admin() {
     const navigate = useNavigate();
@@ -52,7 +49,7 @@ export default function Admin() {
         e.preventDefault();
         try {
             const { _id, name, balance, unityTokens, sugarCandy } = editingTeam;
-            const res = await axios.put(`${API_URL}/${_id}`, {
+            const res = await api.put(`${API_URL}/${_id}`, {
                 name,
                 balance: Number(balance),
                 unityTokens: Number(unityTokens),
@@ -83,7 +80,7 @@ export default function Admin() {
     useEffect(() => {
         const fetchRooms = async () => {
             try {
-                const res = await axios.get(ROOM_API);
+                const res = await api.get(ROOM_API);
                 setRooms(res.data);
             } catch (err) { console.error("Failed to fetch rooms"); }
         };
@@ -100,7 +97,7 @@ export default function Admin() {
             const currentRoomId = user?.activeRoomId || (user?.roomId?._id ?? user?.roomId);
 
             if (currentRoomId) {
-                const teamsRes = await axios.get(`${API_URL}?roomId=${currentRoomId}`);
+                const teamsRes = await api.get(`${API_URL}?roomId=${currentRoomId}`);
                 setTeams(teamsRes.data);
             } else {
                 setTeams([]); // No room selected/assigned
@@ -108,7 +105,7 @@ export default function Admin() {
 
             // 3. Fetch Admins (Root Only)
             if (user?.role === "root") {
-                const adminsRes = await axios.get(ADMIN_API);
+                const adminsRes = await api.get(ADMIN_API);
                 setAdmins(adminsRes.data);
             }
         } catch (err) {
@@ -130,7 +127,7 @@ export default function Admin() {
     const enterRoom = async () => {
         if (!activeRoomId) return alert("Select a room");
         try {
-            await axios.post(`${ADMIN_API}/enter-room`, { roomId: activeRoomId });
+            await api.post(`${ADMIN_API}/enter-room`, { roomId: activeRoomId });
             // Refresh User State to get new activeRoomId
             // GameContext should handle this if we trigger a refresh or manual update
             // Ideally call checkSession or similar.
@@ -155,7 +152,7 @@ export default function Admin() {
     const assignRoom = async (teamId, newRoomId) => {
         if (!newRoomId) return;
         try {
-            await axios.post(`${ADMIN_API}/assign-team-room`, { teamId, roomId: newRoomId });
+            await api.post(`${ADMIN_API}/assign-team-room`, { teamId, roomId: newRoomId });
             fetchData(); // specific team will likely vanish from list if filtered by room
         } catch (err) {
             alert("Failed to assign room");
@@ -169,7 +166,7 @@ export default function Admin() {
         if (!newTeam.name || !currentRoomId) return alert("No active room to add team to.");
 
         try {
-            await axios.post(API_URL, { ...newTeam, roomId: currentRoomId });
+            await api.post(API_URL, { ...newTeam, roomId: currentRoomId });
             setNewTeam({ name: "", balance: 10000 });
             fetchData();
         } catch (err) {
@@ -179,7 +176,7 @@ export default function Admin() {
 
     const deleteTeam = async (id) => {
         if (!window.confirm("Delete team?")) return;
-        try { await axios.delete(`${API_URL}/${id}`); fetchData(); } catch (err) { }
+        try { await api.delete(`${API_URL}/${id}`); fetchData(); } catch (err) { }
     };
 
     const updateBalance = async (id, current, amount) => {
@@ -188,7 +185,7 @@ export default function Admin() {
         setTeams(prev => prev.map(t => t._id === id ? { ...t, balance: newBalance } : t));
 
         try {
-            const res = await axios.put(`${API_URL}/${id}`, { balance: newBalance });
+            const res = await api.put(`${API_URL}/${id}`, { balance: newBalance });
             // Confirm with server response if needed, but optimistic is fastest
             if (res.data) setTeams(prev => prev.map(t => t._id === id ? res.data : t));
         } catch (err) {
@@ -204,7 +201,7 @@ export default function Admin() {
         setTimeout(() => setProcessingAction(false), 500); // 500ms debounce
 
         try {
-            const res = await axios.post(`${ADMIN_API}/update-team-resources`, {
+            const res = await api.post(`${ADMIN_API}/update-team-resources`, {
                 teamId, type, amount, adminId: user._id
             });
 
@@ -225,7 +222,7 @@ export default function Admin() {
 
     const updateLifeline = async (teamId, lifeline, action) => {
         try {
-            const res = await axios.post(`${ADMIN_API}/update-team-lifeline`, { teamId, lifelineName: lifeline, action });
+            const res = await api.post(`${ADMIN_API}/update-team-lifeline`, { teamId, lifelineName: lifeline, action });
             const updatedTeam = res.data;
 
             // Update teams list immutably
@@ -255,7 +252,7 @@ export default function Admin() {
     const createRoom = async (e) => {
         e.preventDefault();
         try {
-            await axios.post(ROOM_API, { name: newRoomName });
+            await api.post(ROOM_API, { name: newRoomName });
             setNewRoomName("");
             fetchData(); // Refresh room lists
             alert("Room Created");
@@ -265,7 +262,7 @@ export default function Admin() {
     const handleDeleteAdmin = async (id) => {
         if (!window.confirm("Are you sure you want to delete this admin?")) return;
         try {
-            await axios.delete(`${ADMIN_API}/${id}`);
+            await api.delete(`${ADMIN_API}/${id}`);
             fetchData();
             alert("Admin Deleted");
         } catch (err) {
@@ -276,7 +273,7 @@ export default function Admin() {
     const createAdmin = async (e) => {
         e.preventDefault();
         try {
-            await axios.post(`${ADMIN_API}/add`, newAdmin);
+            await api.post(`${ADMIN_API}/add`, newAdmin);
             setNewAdmin({ username: "", password: "", role: "admin", roomId: "" });
             fetchData();
             alert("Admin Created");
@@ -291,7 +288,7 @@ export default function Admin() {
         if (!currentRoomId) return alert("No active room selected.");
 
         try {
-            await axios.put("http://localhost:5000/api/state", { isGameActive: true, startedByAdminId: user._id, roomId: currentRoomId });
+            await api.put("/api/state", { isGameActive: true, startedByAdminId: user._id, roomId: currentRoomId });
             if (refreshState) await refreshState();
             alert("Game Started!");
             navigate("/game");

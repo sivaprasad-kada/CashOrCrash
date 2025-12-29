@@ -1,12 +1,9 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import "../styles/admin.css"; // Reuse valid styles
-import { useGame } from "../context/GameContext";
-import { API_BASE_URL } from "../config";
+import api from "../services/api";
 
-const ADMIN_API = `${API_BASE_URL}/api/admin`;
+const ADMIN_API = "/api/admin";
 
 export default function AdminLogin() {
     const navigate = useNavigate();

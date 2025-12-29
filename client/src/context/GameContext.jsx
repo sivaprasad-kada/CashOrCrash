@@ -1,12 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
-import { API_BASE_URL } from "../config";
+import api from "../services/api";
 
 const GameContext = createContext();
 
 const TOTAL_QUESTIONS = 100;
-const GAME_API = `${API_BASE_URL}/api/game`;
-const TEAM_API = `${API_BASE_URL}/api/teams`;
+const GAME_API = "/api/game";
+const TEAM_API = "/api/teams";
 
 export const useGame = () => useContext(GameContext);
 
@@ -47,11 +46,10 @@ export function GameProvider({ children }) {
   const [user, setUser] = useState(null); // [NEW] Full User Object (id, role, etc)
 
   // [NEW] Persist API
-  const STATE_API = `${API_BASE_URL}/api/state`;
-  const ADMIN_API = `${API_BASE_URL}/api/admin`;
+  const STATE_API = "/api/state";
+  const ADMIN_API = "/api/admin";
 
-  // [NEW] Axios Config for Cookies
-  axios.defaults.withCredentials = true;
+  // [NEW] Axios Config handled in services/api.js
 
   // [UPDATED] Auth State
   const [hasActiveAdmin, setHasActiveAdmin] = useState(false);
@@ -66,7 +64,7 @@ export function GameProvider({ children }) {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await axios.get(`${ADMIN_API}/me`);
+        const res = await api.get(`${ADMIN_API}/me`);
         if (res.data.success && res.data.admin) {
           setHasActiveAdmin(true);
           setUser(res.data.admin); // [NEW] Set User
@@ -96,7 +94,7 @@ export function GameProvider({ children }) {
   }, []);
 
   const loginAdmin = async (credentials) => {
-    const res = await axios.post(`${ADMIN_API}/login`, credentials);
+    const res = await api.post(`${ADMIN_API}/login`, credentials);
     if (res.data.success) {
       setHasActiveAdmin(true);
       setUser(res.data.user); // [NEW] Set User
@@ -110,7 +108,7 @@ export function GameProvider({ children }) {
 
   const logoutAdmin = async () => {
     try {
-      await axios.post(`${ADMIN_API}/logout`);
+      await api.post(`${ADMIN_API}/logout`);
       setHasActiveAdmin(false);
       setUser(null);
       setAdminRoomId(null);
@@ -129,8 +127,8 @@ export function GameProvider({ children }) {
 
       // 1. Fetch Teams & State Logic
       const [teamsRes, stateRes] = await Promise.all([
-        axios.get(`${TEAM_API}${initialRoomQuery}`),
-        axios.get(`${STATE_API}${initialRoomQuery}`)
+        api.get(`${TEAM_API}${initialRoomQuery}`),
+        api.get(`${STATE_API}${initialRoomQuery}`)
       ]);
 
       setTeams(teamsRes.data);
@@ -143,7 +141,7 @@ export function GameProvider({ children }) {
       const effectiveRoomId = adminRoomId || serverState.roomId;
       const questionRoomQuery = effectiveRoomId ? `?roomId=${effectiveRoomId}` : "";
 
-      const questionsRes = await axios.get(`${GAME_API}/questions${questionRoomQuery}`);
+      const questionsRes = await api.get(`${GAME_API}/questions${questionRoomQuery}`);
       const serverQuestions = questionsRes.data;
 
 
@@ -151,7 +149,7 @@ export function GameProvider({ children }) {
       // Fetch Admin Balance
       // STRICTLY use the authenticated session.
       try {
-        const meRes = await axios.get(`${ADMIN_API}/me`);
+        const meRes = await api.get(`${ADMIN_API}/me`);
         if (meRes.data.success && meRes.data.admin) {
           setAdminBalance(meRes.data.admin.balance);
           setAdminName(meRes.data.admin.username);
@@ -216,10 +214,10 @@ export function GameProvider({ children }) {
 
     try {
       if (adminRoomId) {
-        const res = await axios.get(`${ADMIN_API}/room-balance/${adminRoomId}`);
+        const res = await api.get(`${ADMIN_API}/room-balance/${adminRoomId}`);
         if (res.data.success) setAdminBalance(res.data.balance);
       } else {
-        const meRes = await axios.get(`${ADMIN_API}/me`);
+        const meRes = await api.get(`${ADMIN_API}/me`);
         if (meRes.data.success && meRes.data.admin) setAdminBalance(meRes.data.admin.balance);
       }
     } catch (e) {
@@ -234,7 +232,7 @@ export function GameProvider({ children }) {
 
     try {
       if (!teamId) return;
-      const res = await axios.get(`${TEAM_API}/${teamId}?t=${Date.now()}`);
+      const res = await api.get(`${TEAM_API}/${teamId}?t=${Date.now()}`);
       if (res.data) {
         setTeams(prev => prev.map(t => t._id === teamId ? res.data : t));
       }
@@ -246,7 +244,7 @@ export function GameProvider({ children }) {
   // 2. Wrap SetActiveTeam with Persistence
   const updateActiveTeam = (id) => {
     setActiveTeamId(id);
-    axios.put(STATE_API, { activeTeamId: id }).catch(console.error);
+    api.put(STATE_API, { activeTeamId: id }).catch(console.error);
   };
 
   const loadQuestion = async (questionId, persist = true) => {
@@ -254,11 +252,11 @@ export function GameProvider({ children }) {
     const currentRoomId = adminRoomId || activeTeam?.roomId;
     const roomQuery = currentRoomId ? `?roomId=${currentRoomId}` : "";
 
-    const res = await axios.get(`${GAME_API}/question/${questionId}${roomQuery}`);
+    const res = await api.get(`${GAME_API}/question/${questionId}${roomQuery}`);
     setSelectedQuestion(res.data);
 
     if (persist) {
-      axios.put(STATE_API, { currentQuestionId: questionId, roomId: currentRoomId }).catch(console.error);
+      api.put(STATE_API, { currentQuestionId: questionId, roomId: currentRoomId }).catch(console.error);
     }
   };
 
@@ -267,12 +265,12 @@ export function GameProvider({ children }) {
     setSelectedQuestion(null);
     setBidState({ questionId: null, amount: null, confirmed: false });
     const currentRoomId = adminRoomId || activeTeam?.roomId;
-    axios.put(STATE_API, { currentQuestionId: null, roomId: currentRoomId }).catch(console.error);
+    api.put(STATE_API, { currentQuestionId: null, roomId: currentRoomId }).catch(console.error);
   };
 
   const useLifeline = async (payload) => {
     try {
-      const res = await axios.post(`${GAME_API}/lifeline`, payload);
+      const res = await api.post(`${GAME_API}/lifeline`, payload);
       // Update state if server returns updated question
       if (res.data.question) {
         setSelectedQuestion(prev => ({ ...prev, ...res.data.question }));
@@ -333,7 +331,7 @@ export function GameProvider({ children }) {
         consumeLifeline,
         useLifeline,
         saveLifelines: async (teamId, lifelines) => {
-          const res = await axios.put(`${TEAM_API}/${teamId}`, { lifelines });
+          const res = await api.put(`${TEAM_API}/${teamId}`, { lifelines });
           setTeams(prev => prev.map(t => t._id === teamId ? res.data : t));
         },
         animationPhase,

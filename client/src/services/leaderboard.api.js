@@ -1,7 +1,5 @@
-import axios from "axios";
+import api from "./api";
 
-import { API_BASE_URL } from "../config";
+const API = "/api/leaderboard";
 
-const API = `${API_BASE_URL}/api/leaderboard`;
-
-export const fetchLeaderboard = () => axios.get(API);
+export const fetchLeaderboard = () => api.get(API);

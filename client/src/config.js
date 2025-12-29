@@ -1,4 +1,5 @@
-// [NEW] Centralized Configuration
-// Use VITE_API_URL if set, otherwise default to localhost
-// For single-service deployment, relative paths often work, but having a full URL is safer for Socket.io
+// This file is deprecated in favor of using the centralized api service.
+// However, we keep the constant export for any non-axios usage if necessary,
+// but strongly encourage checking src/services/api.js
+
 export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";

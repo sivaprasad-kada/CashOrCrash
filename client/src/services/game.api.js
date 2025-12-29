@@ -1,15 +1,14 @@
-import axios from "axios";
+import api from "./api";
 
-import { API_BASE_URL } from "../config";
-
-const GAME_API = `${API_BASE_URL}/api/game`;
-const TEAM_API = `${API_BASE_URL}/api/teams`;
+const GAME_BASE = "/api/game";
+const TEAM_BASE = "/api/teams";
 
 export const submitAnswer = (payload) =>
-  axios.post(`${GAME_API}/answer`, payload);
+  api.post(`${GAME_BASE}/answer`, payload);
 
 export const fetchTeams = () =>
-  axios.get(TEAM_API);
+  api.get(TEAM_BASE);
 
 export const fetchLeaderboard = () =>
-  axios.get(`${TEAM_API}/leaderboard`);
+  api.get(`${TEAM_BASE}/leaderboard`);
+
