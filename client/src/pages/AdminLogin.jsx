@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
-const ADMIN_API = "/api/admin";
+const ADMIN_API = "/admin";
 
 export default function AdminLogin() {
     const navigate = useNavigate();

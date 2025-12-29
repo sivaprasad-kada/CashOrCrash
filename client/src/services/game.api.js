@@ -1,7 +1,7 @@
 import api from "./api";
 
-const GAME_BASE = "/api/game";
-const TEAM_BASE = "/api/teams";
+const GAME_BASE = "/game";
+const TEAM_BASE = "/teams";
 
 export const submitAnswer = (payload) =>
   api.post(`${GAME_BASE}/answer`, payload);

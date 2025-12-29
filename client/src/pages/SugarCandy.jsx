@@ -19,11 +19,11 @@ export default function SugarCandy() {
         const init = async () => {
             try {
                 // 1. Fetch Team
-                const teamRes = await api.get(`/api/teams/${teamId}`);
+                const teamRes = await api.get(`/teams/${teamId}`);
                 setTeam(teamRes.data);
 
                 // 2. Fetch Cards
-                const cardsRes = await api.get("/api/sugarcandy");
+                const cardsRes = await api.get("/sugarcandy");
                 setCards(cardsRes.data);
 
                 setLoading(false);
@@ -40,7 +40,7 @@ export default function SugarCandy() {
         init();
 
         // Seed if empty (dev utility)
-        api.post("/api/sugarcandy/seed").catch(() => { });
+        api.post("/sugarcandy/seed").catch(() => { });
     }, [teamId]);
 
     const handleCardClick = (card) => {
@@ -65,7 +65,7 @@ export default function SugarCandy() {
                 // But let's trust the backend to reject if invalid.
             }
 
-            const res = await api.post("/api/sugarcandy/apply", {
+            const res = await api.post("/sugarcandy/apply", {
                 teamId: team._id,
                 percentage: selectedCard.percentage,
                 answer,
@@ -109,7 +109,7 @@ export default function SugarCandy() {
                         <button
                             onClick={async () => {
                                 try {
-                                    const res = await api.get(`/api/teams/${teamId}?t=${Date.now()}`);
+                                    const res = await api.get(`/teams/${teamId}?t=${Date.now()}`);
                                     setTeam(res.data);
                                 } catch (e) { console.error("Refresh failed") }
                             }}

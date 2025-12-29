@@ -1,5 +1,5 @@
 import api from "./api";
 
-const API = "/api/leaderboard";
+const API = "/leaderboard";
 
 export const fetchLeaderboard = () => api.get(API);

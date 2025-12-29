@@ -4,8 +4,8 @@ import api from "../services/api";
 const GameContext = createContext();
 
 const TOTAL_QUESTIONS = 100;
-const GAME_API = "/api/game";
-const TEAM_API = "/api/teams";
+const GAME_API = "/game";
+const TEAM_API = "/teams";
 
 export const useGame = () => useContext(GameContext);
 
@@ -46,8 +46,8 @@ export function GameProvider({ children }) {
   const [user, setUser] = useState(null); // [NEW] Full User Object (id, role, etc)
 
   // [NEW] Persist API
-  const STATE_API = "/api/state";
-  const ADMIN_API = "/api/admin";
+  const STATE_API = "/state";
+  const ADMIN_API = "/admin";
 
   // [NEW] Axios Config handled in services/api.js
 

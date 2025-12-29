@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "../styles/admin.css";
 
-const API_URL = "/api/teams";
-const ADMIN_API = "/api/admin";
-const ROOM_API = "/api/rooms";
+const API_URL = "/teams";
+const ADMIN_API = "/admin";
+const ROOM_API = "/rooms";
 
 export default function Admin() {
     const navigate = useNavigate();
@@ -288,7 +288,7 @@ export default function Admin() {
         if (!currentRoomId) return alert("No active room selected.");
 
         try {
-            await api.put("/api/state", { isGameActive: true, startedByAdminId: user._id, roomId: currentRoomId });
+            await api.put("/state", { isGameActive: true, startedByAdminId: user._id, roomId: currentRoomId });
             if (refreshState) await refreshState();
             alert("Game Started!");
             navigate("/game");
