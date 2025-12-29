@@ -1,6 +1,6 @@
 import express from "express";
 import http from "http";
-import path from "path"; // [NEW]
+
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -29,11 +29,25 @@ import cookieParser from "cookie-parser";
 /* ============================= */
 /* MIDDLEWARE */
 /* ============================= */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  process.env.CLIENT_URL,
+  "https://cashorcrash-frontend.onrender.com"
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === "production"
-    ? [process.env.CLIENT_URL, "https://your-app-name.onrender.com"]
-    : ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -89,19 +103,9 @@ io.on("connection", socket => {
 /* ============================= */
 const PORT = process.env.PORT || 5000;
 
-// [NEW] Deployment: Serve Frontend
-if (process.env.NODE_ENV === "production") {
-  const __dirname = path.resolve();
-  app.use(express.static(path.join(__dirname, "../client/dist")));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "../client", "dist", "index.html"));
-  });
-} else {
-  app.get("/", (req, res) => {
-    res.send("API is running...");
-  });
-}
+app.get("/", (req, res) => {
+  res.send("Backend API is running. Frontend is deployed separately.");
+});
 
 server.listen(PORT, () =>
   console.log(`🚀 Server running on port ${PORT}`)
