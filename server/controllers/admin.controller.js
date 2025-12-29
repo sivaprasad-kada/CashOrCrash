@@ -57,7 +57,13 @@ export const loginAdmin = async (req, res) => {
         const token = jwt.sign(tokenPayload, process.env.JWT_SECRET || "secret", { expiresIn: "24h" });
 
         // 5. Set Cookie
-        res.cookie("token", token, { httpOnly: true, secure: false, maxAge: 24 * 60 * 60 * 1000 });
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: isProduction, // True in production (HTTPS)
+            sameSite: isProduction ? 'none' : 'lax', // None for cross-site in prod
+            maxAge: 24 * 60 * 60 * 1000
+        });
 
         console.log(`[LOGIN SUCCESS] ${username} | Session: ${sessionId}`);
 
@@ -87,7 +93,12 @@ export const enterRoom = async (req, res) => {
             { expiresIn: "1d" }
         );
 
-        res.cookie("token", newToken, { httpOnly: true, secure: false });
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie("token", newToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax'
+        });
 
         // Update DB status for tracking (optional)
         await Admin.findByIdAndUpdate(decoded.id, { roomId });
@@ -111,7 +122,12 @@ export const logoutAdmin = async (req, res) => {
         } catch (e) { }
     }
 
-    res.clearCookie("token");
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax'
+    });
     res.json({ success: true });
 };
 
